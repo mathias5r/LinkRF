@@ -2,7 +2,9 @@
  * Framming.cpp
  *
  *  Created on: 25 de ago de 2016
- *      Author: Google
+ *      Authors: Mathias Silva da Rosa
+ *		 Vinicius Bandeira
+ *		 Guilherme de Albuquerque
  */
 
 #include "Framework.h"
