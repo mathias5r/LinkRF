@@ -2,7 +2,7 @@
  * Framming.cpp
  *
  *  Created on: 25 de ago de 2016
- *      Author: aluno
+ *      Author: Google
  */
 
 #include "Framework.h"
