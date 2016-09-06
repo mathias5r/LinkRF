@@ -12,7 +12,7 @@
 void receive_msg(char* buffer){
 
 	Serial s("/dev/ttyUSB0",B9600);
-	Framework f(s);
+	Framework f(s,8,BUFSIZE);
 
 	f.receive(buffer);
 }
@@ -20,7 +20,7 @@ void receive_msg(char* buffer){
 void send_msg(char *buffer){
 
 	Serial s("/dev/ttyUSB0",B9600);
-	Framework f(s);
+	Framework f(s,8,BUFSIZE);
 
 	f.send(buffer, strlen(buffer));
 }
@@ -32,11 +32,11 @@ int main(){
 	char* msg, *buffer = new char[BUFSIZE];
 	msg = (char*)"this is a }^}]}^}}]]^^~~ test message";
 
-	/*receive_msg(buffer);
-	std::cout << "Received data: " << msg << std::endl;*/
+	receive_msg(buffer);
+	std::cout << "Received data: " << buffer << std::endl;
 
-	send_msg(msg);
-	std::cout << "Data sent" << std::endl;
+	/*send_msg(msg);
+	std::cout << "Data sent" << std::endl;*/
 
 }
 

@@ -22,7 +22,7 @@ public:
 	int receive(char* buffer);
 
 	// getters
-	Serial * get_serial() { return serial; }
+	Serial& get_serial() { return serial; }
 	int get_max_bytes() { return max_bytes; }
 	int get_min_bytes() { return min_bytes; }
 	char * get_buffer() { return buffer; }

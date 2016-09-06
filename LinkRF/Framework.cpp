@@ -14,7 +14,7 @@ using namespace std;
 Framework::Framework(Serial & s, int bytes_min, int bytes_max):serial(s) {
 	this->min_bytes = bytes_min;
 	this->max_bytes = bytes_max;
-	this->buffer[BUFSIZE];
+	this->buffer = new char[BUFSIZE];
 	this->n_bytes = 0;
 	this->currentState = waiting;
 }
@@ -46,13 +46,13 @@ void Framework::send(char *buffer, int len){
 														frame[j] = 0x7D;
 			frame[j+1] = 0x5E;
 			j = j + 1;
-			cout << "INFO: 0x7E founded in position "<< i << " of the data." << endl;
+			cout << "INFO: 0x7E found in position "<< i << " of the data." << endl;
 			break;
 			case(0x7D):							// If there is a 0x7D byte in the data, it is placed 0x7D5D in frame
 														frame[j] = 0x7D;
 			frame[j+1] = 0x5D;
 			j = j + 1;
-			cout << "INFO: 0x7D founded in position "<< i << " of the data." << endl;
+			cout << "INFO: 0x7D found in position "<< i << " of the data." << endl;
 			break;
 			default:
 				frame[j] = buffer[i];			// Normal copy
@@ -86,13 +86,18 @@ int Framework::receive(char* buffer){
 	cout << "Removal of framework started" << endl;
 
 	bool return_fsm;
+	char frame[BUFSIZE];
 	char frame_byte;
 
+	this->serial.read(frame, BUFSIZE, false);
+	std::cout << "Frame read: " << frame << std::endl;
+
 	for(int i=0;!return_fsm; i++){
-		this->serial.read(buffer, BUFSIZE, false);
-		frame_byte = buffer[i];
+		frame_byte = frame[i];
 		return_fsm = this->handle(frame_byte);
 	}
+
+	memcpy(buffer, this->buffer, BUFSIZE);
 
 	cout << "Data received: " << buffer  << endl;
 
@@ -107,6 +112,7 @@ bool Framework::handle(char byte){
 
 	case waiting:
 		if(byte == 0x7E){
+			std::cout << "Initial delimitation found!" << std::endl;
 			this->n_bytes = 0;
 			this->currentState = reception;
 		} else {
@@ -120,6 +126,7 @@ bool Framework::handle(char byte){
 			this->currentState = waiting;
 		} else {
 			if(byte == 0x7E){
+				std::cout << "End delimitation found!" << std::endl;
 				this->currentState = waiting;
 				return true; // frame finished
 			} if (byte == 0x7D) {
@@ -134,10 +141,12 @@ bool Framework::handle(char byte){
 	case escape:
 		switch(byte){
 		case(0x5E):
+			std::cout << "INFO: 0x7E found in position: " << n_bytes << " of the data" << std::endl;
     		this->buffer[n_bytes] = 0x7E;
 			this->currentState = reception;
 			break;
 		case(0x5D):
+			std::cout << "INFO: 0x7D found in position: " << n_bytes << " of the data" << std::endl;
 			this->buffer[n_bytes] = 0x7D;
 			this->currentState = reception;
 			break;
