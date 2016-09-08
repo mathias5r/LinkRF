@@ -9,9 +9,13 @@
 #include <string.h>
 #include <iostream>
 #include <cstring>
+#include <stdint.h>
 
 #ifndef FRAMMING_H_
 #define FRAMMING_H_
+
+#define PPPINITFCS16 0xffff
+#define PPPGOODFSCS16 0xf0b8
 
 class Framework {
 
@@ -34,6 +38,7 @@ public:
 	void set_max_bytes(int bytes_max) {max_bytes = bytes_max;}
 
 private:
+
 	Serial & serial;
 	int min_bytes, max_bytes; // max and min number of bytes allowed for each frame
 	char * buffer; // should be dimensioned instantiation
@@ -52,6 +57,19 @@ private:
 	// retorna true se reconheceu um quadro completo
 	bool handle(char byte);
 
+	// verifica o CRC do conteúdo contido em "buffer". Os dois últimos
+	// bytes desse buffer contém o valor de CRC
+	bool check_crc(unsigned char * buffer, int len);
+
+	// gera o valor de CRC dos bytes contidos em buffer. O valor de CRC
+	// é escrito em buffer[len] e buffer[len+1]
+	void gen_crc(unsigned char * buffer, int len);
+
+	// calcula o valor de CRC dos bytes contidos em "cp".
+	// "fcs" deve ter o valor PPPINITFCS16
+	// O resultado é o valor de CRC (16 bits)
+	// OBS: adaptado da RFC 1662 (enquadramento no PPP)
+	uint16_t pppfcs16(uint16_t fcs, unsigned char * cp, int len);
 
 };
 
