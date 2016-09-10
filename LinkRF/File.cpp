@@ -7,51 +7,51 @@
 
 #include "File.h"
 
-File::File(FILE* file, char *path){
+File::File(char *path){
 
-	this->file = file;
 	this->path = path;
 
-	if((this->file = fopen(this->path, "wa")) == NULL) { //Abre arquivo com mesmo nome em modo escrita
-		std::cout << "Fail to open the file!\n" << std::endl;
-	}
+	std::fstream f (this->path, std::ios_base::out | std::ios_base::in | std::ios_base::binary );
+	if(!f){std::cerr << "Fail to open the file!" << std::endl;}
+
+	this->file = &f;
 
 	this->size = getSize();
+
+	std::cout << "File size: " << this->size << std::endl;
 }
 
 File::~File(){}
 
-int File::readfile(char * buffer){
-	if(this->file != NULL){
-		fread(buffer,this->size,1024,this->file);
-		buffer[this->size] = 0;
-		return 1;
-	}else{
+int File::readfile(char * buffer, unsigned long position){
+	if(!(this->file->read(buffer,this->size))){
+		std::cerr << "Fail to read from file!\n" << std::endl;
 		return -1;
+	}else{
+		this->file->seekg(position);
+		return 1;
 	}
 }
 
-long File::writefile(char *buffer){
-
-	int b_size = strlen(buffer);
-
-	if(this->file != NULL){
-		while(b_size != 0){
-			fwrite(buffer,sizeof(char),1024,file); // Recebe 1kb por vez e grava
-			b_size -= 1024;
-		}
+int File::writefile(char *buffer, unsigned long position){
+	if(!(this->file->write(buffer,this->size))){
+		std::cerr << "Fail to read from file!\n" << std::endl;
+		return -1;
+	}else{
+		this->file->seekp(position);
 		return 1;
 	}
-	return -1;
 }
 
 
 long File::getSize(){
 
 	struct stat inf_file;
-	int f_size;
 
-	if((f_size = stat(this->path, &inf_file)) != -1){
+	if((stat(this->path, &inf_file)) == -1){
 		std::cout << "Fail to get file information " << std::endl;
+		return -1;
+	}else{
+		return inf_file.st_size;
 	}
 }
