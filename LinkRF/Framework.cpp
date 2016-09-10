@@ -97,12 +97,12 @@ void Framework::send(char *buffer, int len){
 		frame[j-1] = 0x7E;							// End delimitation of the frame using flag 0x7E (01111110)
 
 		//CRC
-
-
+		gen_crc((unsigned char*)frame,strlen(frame));
 
 		frame[strlen(frame)] = '\n';
 
 
+		std::cout << "Frame after the gen_crc: " << frame << std::endl;
 
 		int n = serial.write(frame, strlen(frame));
 
@@ -212,14 +212,21 @@ bool Framework::check_crc(unsigned char * buffer, int len){
 
 void Framework::gen_crc(unsigned char * buffer, int len){
 
+	unsigned char* b = (unsigned char *)malloc(len+2);
+	memcpy(b,buffer,len+2);
+
 	uint16_t crc = pppfcs16(PPPINITFCS16,buffer,len);
 
 	crc ^= 0xffff;
 	uint8_t crc_low = (uint8_t)crc;
 	uint8_t crc_high = (uint8_t)crc >> 8;
 
-	this->buffer[len] = crc_high & 0xff;
-	this->buffer[len+1] = crc_low & 0xff;
+	b[len+1] = crc_high & 0xff;
+	b[len+2] = crc_low & 0xff;
+
+	std::cout << "b frame: " << b << std::endl;
+
+	free(b);
 }
 
 uint16_t Framework::pppfcs16(uint16_t fcs, unsigned char * cp, int len){

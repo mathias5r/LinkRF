@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdint.h>
+#include<cstdlib>
 
 #ifndef FRAMMING_H_
 #define FRAMMING_H_

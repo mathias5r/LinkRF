@@ -15,7 +15,7 @@
 #include<iostream>
 #include<sys/stat.h>
 #include<cstdlib>
-#include <fstream>
+#include<fstream>
 
 #define BUFSIZE 1024
 
@@ -23,11 +23,10 @@ class File {
 public:
 	File(char *path);
 	virtual ~File();
-	int readfile(char * buffer, unsigned long position);
-	int writefile(char * buffer, unsigned long position);
+	int readfile(char * buffer,unsigned int len, unsigned long position);
+	int writefile(char * buffer);
 	long getSize();
 private:
-	std::fstream* file;
 	char * path;
 	long size;
 
