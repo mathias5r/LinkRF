@@ -70,7 +70,7 @@ private:
 	// "fcs" deve ter o valor PPPINITFCS16
 	// O resultado é o valor de CRC (16 bits)
 	// OBS: adaptado da RFC 1662 (enquadramento no PPP)
-	uint16_t pppfcs16(uint16_t fcs, unsigned char * cp, int len);
+	uint16_t pppfcs16(unsigned char * cp, int len);
 
 };
 

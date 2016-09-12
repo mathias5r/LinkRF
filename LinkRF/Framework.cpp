@@ -9,8 +9,9 @@
 
 #include "Framework.h"
 
-using namespace std;
+//using namespace std;
 
+// This vector is used to calculate the CRC of the frames.
 static uint16_t fcstab[256] = {
 			0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
 			0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -63,54 +64,58 @@ Framework::~Framework() {}
  * char *buffer - It is the data that must be placed in a frame.
  * int len - The size of the data in bytes
  *
- * This function delimitate the data with flags 0x7E, replace false flags
- * and send the frame through the serial port.
+ * This function delimitates the data with flags 0x7E, replaces false flags,
+ * places CRC bytes and sends the final frame through the serial port.
  */
 void Framework::send(char *buffer, int len){
 
-	char frame[2*BUFSIZE+4];
+	/*It is multiplied by 2 because all of data could be
+	  false flags and it is added by 5 because of flags,
+	  CRC and char terminator '\0';
+	*/
+	char frame[2*BUFSIZE+5];
 
-	cout << "Framework started" << endl;
+	std::cout << "Framework started" << std::endl;
 
 	if (len >= this->min_bytes && len <= this->max_bytes) {
 
-		frame[0] = 0x7E;							// Initial delimitation of the frame using flag 0x7E (01111110)
+		frame[0] = 0x7E; // Initial delimitation of the frame using flag 0x7E (01111110)
+
 		int i,j;
 		for( i=0, j=1 ; i <= len ; i++,j++ ){
 			switch(buffer[i]){
-			case(0x7E):							// If there is a 0x7E byte in the data, it is placed 0x7D5E in frame
-														frame[j] = 0x7D;
-			frame[j+1] = 0x5E;
-			j = j + 1;
-			cout << "INFO: 0x7E found in position "<< i << " of the data." << endl;
-			break;
-			case(0x7D):							// If there is a 0x7D byte in the data, it is placed 0x7D5D in frame
-														frame[j] = 0x7D;
-			frame[j+1] = 0x5D;
-			j = j + 1;
-			cout << "INFO: 0x7D found in position "<< i << " of the data." << endl;
-			break;
-			default:
-				frame[j] = buffer[i];			// Normal copy
+				case(0x7E):	 // If there is a 0x7E byte in the data, it is placed 0x7D5E in frame
+					frame[j] = 0x7D;
+					frame[j+1] = 0x5E;
+					j = j + 1;
+					std::cout << "INFO: 0x7E found in position "<< i << " of the data." << std::endl;
+					break;
+				case(0x7D):	// If there is a 0x7D byte in the data, it is placed 0x7D5D in frame
+					frame[j] = 0x7D;
+					frame[j+1] = 0x5D;
+					j = j + 1;
+					std::cout << "INFO: 0x7D found in position "<< i << " of the data." << std::endl;
+					break;
+				default:
+					frame[j] = buffer[i]; // Normal copy
 			}
 		}
-		frame[j-1] = 0x7E;							// End delimitation of the frame using flag 0x7E (01111110)
 
-		//CRC
-		gen_crc((unsigned char*)frame,strlen(frame));
+		gen_crc((unsigned char *)frame,j-1); //CRC generation
 
-		frame[strlen(frame)] = '\n';
+		frame[j+1] = 0x7E; // End delimitation of the frame using flag 0x7E (01111110)
 
+		frame[j+2] = '\0'; // Char delimitator - The RF receiver needs it to recognize a new frame
 
-		std::cout << "Frame after the gen_crc: " << frame << std::endl;
+		std::cout << "Final Frame: " << frame << std::endl;
 
-		int n = serial.write(frame, strlen(frame));
-
-		if(! n > 0){
+		int n;
+		if(!(n = serial.write(frame, strlen(frame))) > 0){
 			std::cout << "Error in writing a frame in the serial port" << n << std::endl;
 		}
+
 	} else {
-		cout << "ERROR: Frame exceeded the maximum/minimum size" << endl;
+		std::cout << "ERROR: Frame exceeded the maximum/minimum size" << std::endl;
 	}
 }
 
@@ -126,7 +131,7 @@ void Framework::send(char *buffer, int len){
  */
 int Framework::receive(char* buffer){
 
-	cout << "Removal of framework started" << endl;
+	std::cout << "Removal of framework started" << std::endl;
 
 	bool return_fsm;
 	char frame[2*BUFSIZE+4];
@@ -140,16 +145,25 @@ int Framework::receive(char* buffer){
 		return_fsm = this->handle(frame_byte);
 	}
 
-	memcpy(buffer, this->buffer, BUFSIZE);
-
-	cout << "Data received: " << buffer  << endl;
+	if(check_crc((unsigned char*)this->buffer,n_bytes)){
+		memcpy(buffer, this->buffer, BUFSIZE);
+		std::cout << "Data received: " << buffer  << std::endl;
+	}else{
+		std::cout << "CRC does not match!: " << buffer  << std::endl;
+	}
 
 	return this->n_bytes;
 }
 
-
+/*
+ * bool Framework::handle(char byte);
+ *
+ * char byte - It is the byte of the frame that must be analyzed
+ *
+ * This method implements the FSM of the receiver
+ *
+ */
 bool Framework::handle(char byte){
-
 
 	switch(this->currentState){
 
@@ -165,7 +179,7 @@ bool Framework::handle(char byte){
 
 	case reception:
 		if (this->n_bytes > this->max_bytes){
-			cout << "Overflow: " << this->n_bytes << " bytes" << endl;
+			std::cout << "Overflow: " << this->n_bytes << " bytes" << std::endl;
 			this->currentState = waiting;
 		} else {
 			if(byte == 0x7E){
@@ -203,38 +217,65 @@ bool Framework::handle(char byte){
 	return false;
 }
 
+/*
+ * ool Framework::check_crc(unsigned char * buffer, int len);
+ *
+ * unsigned char * buffer - It is the frame that has the CRC.
+ * int len - It is the size of the buffer
+ *
+ * This method check if the CRC in the end of the frame corresponds
+ * with the data received
+ *
+ */
 bool Framework::check_crc(unsigned char * buffer, int len){
 
-	uint16_t crc = pppfcs16(PPPINITFCS16,buffer,len);
+	uint16_t crc = pppfcs16(buffer,len);
 
 	return (crc == PPPGOODFSCS16);
 }
 
+
+/*
+ * void Framework::gen_crc(unsigned char * buffer, int len);
+ *
+ * unsigned char * buffer - The CRC must be placed in the end of this buffer
+ * int len - It is the size of the buffer
+ *
+ * This method generates the CRC analyzing the data into the buffer and
+ * places the CRC in the end of this. The CRC is calculated by the frame
+ * check sequence method.
+ *
+ */
 void Framework::gen_crc(unsigned char * buffer, int len){
 
-	unsigned char* b = (unsigned char *)malloc(len+2);
-	memcpy(b,buffer,len+2);
+	unsigned char * buffer_copy = new unsigned char[2*BUFSIZE];
+	memcpy(buffer_copy,buffer+1,len-1);
 
-	uint16_t crc = pppfcs16(PPPINITFCS16,buffer,len);
+	uint16_t crc = pppfcs16(buffer_copy,len);
 
 	crc ^= 0xffff;
 	uint8_t crc_low = (uint8_t)crc;
-	uint8_t crc_high = (uint8_t)crc >> 8;
+	std::cout << "INFO: Calculated low crc: " << crc_low << std::endl;
 
-	b[len+1] = crc_high & 0xff;
-	b[len+2] = crc_low & 0xff;
+	uint8_t crc_high = (uint8_t)(crc >> 8);
+	std::cout << "INFO: Calculated high crc: " << crc_high << std::endl;
 
-	std::cout << "b frame: " << b << std::endl;
+	buffer[len] = (unsigned char)crc_high & 0xff;
+	buffer[len+1] = (unsigned char)crc_low & 0xff;
 
-	free(b);
+	delete[] buffer_copy;
 }
 
-uint16_t Framework::pppfcs16(uint16_t fcs, unsigned char * cp, int len){
+
+uint16_t Framework::pppfcs16(unsigned char * cp, int len){
+
+	uint16_t fcs = PPPINITFCS16;
 
 	while(len--){
 		fcs = (fcs >> 8) ^ fcstab[(fcs ^ *cp++) & 0xff];
 	}
 	return(fcs);
 }
+
 
 
