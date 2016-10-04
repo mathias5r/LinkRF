@@ -32,11 +32,11 @@ int main(){
 	char* msg, *buffer = new char[BUFSIZE];
 	msg = (char*)"this is a }^}]}^}}]]^^~~ test message";
 
-//	receive_msg(buffer);
-//	std::cout << "Received data: " << buffer << std::endl;
+	receive_msg(buffer);
+	std::cout << "Received data: " << buffer << std::endl;
 
-	send_msg(msg);
-	std::cout << "Data sent" << std::endl;
+	//send_msg(msg);
+	//std::cout << "Data sent" << std::endl;
 
 }
 

@@ -9,8 +9,6 @@
 
 #include "Framework.h"
 
-//using namespace std;
-
 // This vector is used to calculate the CRC of the frames.
 static uint16_t fcstab[256] = {
 			0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
@@ -105,7 +103,7 @@ void Framework::send(char *buffer, int len){
 
 		frame[j+1] = 0x7E; // End delimitation of the frame using flag 0x7E (01111110)
 
-		frame[j+2] = '\0'; // Char delimitator - The RF receiver needs it to recognize a new frame
+		frame[j+2] = '\n'; // Char delimitator - The RF receiver needs it to recognize a new frame
 
 		std::cout << "Final Frame: " << frame << std::endl;
 
@@ -113,7 +111,6 @@ void Framework::send(char *buffer, int len){
 		if(!(n = serial.write(frame, strlen(frame))) > 0){
 			std::cout << "Error in writing a frame in the serial port" << n << std::endl;
 		}
-
 	} else {
 		std::cout << "ERROR: Frame exceeded the maximum/minimum size" << std::endl;
 	}
@@ -137,20 +134,34 @@ int Framework::receive(char* buffer){
 	char frame[2*BUFSIZE+4];
 	char frame_byte;
 
-	this->serial.read(frame, BUFSIZE, false);
-	std::cout << "Frame read: " << frame << std::endl;
+	int n = this->serial.read(frame,2*BUFSIZE+4, true);
+	std::cout << "Frame read: " << frame << "    n: " << n << std::endl;
+
+	char *frame_aux = new char[strlen(frame)];
+	memcpy(frame_aux,frame+1,strlen(frame));
+
+	frame_aux[strlen(frame)-3] = 0;
+	frame_aux[strlen(frame)-4] = 0;
+	frame_aux[strlen(frame)-5] = 0;
+
+	std::cout << "frame[strlen(frame)]: " << frame_aux[67] << std::endl;
+	std::cout << "Frame_aux: " << frame_aux << std::endl;
+
+	if(!(check_crc((unsigned char*)frame_aux,strlen(frame_aux)+1))){
+		std::cout << "CRC does not match!: " << buffer  << std::endl;
+		return -1;
+
+	}
 
 	for(int i=0;!return_fsm; i++){
 		frame_byte = frame[i];
 		return_fsm = this->handle(frame_byte);
 	}
 
-	if(check_crc((unsigned char*)this->buffer,n_bytes)){
-		memcpy(buffer, this->buffer, BUFSIZE);
-		std::cout << "Data received: " << buffer  << std::endl;
-	}else{
-		std::cout << "CRC does not match!: " << buffer  << std::endl;
-	}
+	memcpy(buffer, this->buffer, BUFSIZE);
+	std::cout << "Data received: " << buffer  << std::endl;
+
+	delete[] frame_aux;
 
 	return this->n_bytes;
 }
@@ -217,8 +228,9 @@ bool Framework::handle(char byte){
 	return false;
 }
 
+
 /*
- * ool Framework::check_crc(unsigned char * buffer, int len);
+ * bool Framework::check_crc(unsigned char * buffer, int len);
  *
  * unsigned char * buffer - It is the frame that has the CRC.
  * int len - It is the size of the buffer
@@ -233,7 +245,6 @@ bool Framework::check_crc(unsigned char * buffer, int len){
 
 	return (crc == PPPGOODFSCS16);
 }
-
 
 /*
  * void Framework::gen_crc(unsigned char * buffer, int len);

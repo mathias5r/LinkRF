@@ -51,21 +51,29 @@ int Serial::read(char * buffer, int len, bool block){
 
 	int n = 0;
 
+	char *buffer_aux = new char[len];
+
 	if(block){
 		std::cout<< "Waiting for data with block" << std::endl;
-		while(n <= 1024){
-			n = ::read(tty_fd, buffer,BUFSIZE-1);
+		while(n <= 10){
+			n += ::read(tty_fd, buffer_aux,len);
+			std::cout << "Buffer_aux: " << buffer_aux << std::endl;
 		}
 	}else{
 		std::cout << "Waiting for data without block" << std::endl;
-		n = ::read(tty_fd, buffer,BUFSIZE-1);
+		n = ::read(tty_fd, buffer,len);
 	}
 
-	if(n > 0 ){
-		buffer[n] = 0 ;
-	}else{
-		perror("failed to read the buffer...");
-	}
+	memcpy(buffer,buffer_aux,len);
+
+//	if(n > 0 ){
+//		buffer[n+1] = 0 ;
+//	}else{
+//		perror("failed to read the buffer...");
+//	}
+
+	delete[] buffer_aux;
+
 	return n;
 }
 
