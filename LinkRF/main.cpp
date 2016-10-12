@@ -5,6 +5,7 @@
  *      Author: aluno
  */
 #include "Serial.h"
+#include "File.h"
 #include <iostream>
 
 #include "Framework.h"
@@ -28,6 +29,17 @@ void send_msg(char *buffer){
 int main(){
 
 	std::cout << "File Transfer Aplication\n";
+
+	File f((char*)"/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/texto.txt");
+
+	int n = 0;
+	char* buffer_text = new char[f.getSize()];
+
+	f.readfile(buffer_text,f.getSize(),n);
+
+	std::cout << "Buffer Text: " << buffer_text << std::endl;
+
+	std::cout << "SIZE: " << strlen(buffer_text) << std::endl;
 
 	char* msg, *buffer = new char[BUFSIZE];
 	msg = (char*)"this is a }^}]}^}}]]^^~~ test message";

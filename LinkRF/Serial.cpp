@@ -10,73 +10,103 @@ Serial::Serial(const char * path, int rate) {
 
 	struct termios tio;
 
+	/* Open modem device for reading and writing and not as controlling tty */
 	this->tty_fd = open(path,O_RDWR|O_NOCTTY);
+	if (tty_fd < 0) throw -10;
 
+	/* Save current serial port settings */
 	tcgetattr(tty_fd, &tio);
-	tio.c_cflag=CS8|CREAD|CLOCAL;           // 8n1, see termios.h for more information
 
-	cfsetospeed(&tio,rate);            // 9600 baud
-	cfsetispeed(&tio,rate);            // 9600 baud
+	/* initialize all control characters
+	default values can be found in /usr/include/termios.h, and are given
+	in the comments, but we don't need them here */
+	tio.c_iflag = 0;
+	tio.c_oflag = 0;
+	tio.c_cflag = CS8|CREAD|CLOCAL;   // 8n1, see termios.h for more information
+	tio.c_lflag = 0;
+	tio.c_cc[0] = 3;
+	tio.c_cc[1] = 0x1c;
+	tio.c_cc[2] = 0x7f;
+	tio.c_cc[3] = 0x15;
+	tio.c_cc[4] = 4;
+	tio.c_cc[5] = 0;
+	tio.c_cc[6] = 0;
+	tio.c_cc[7] = 0;
+	tio.c_cc[8] = 0x11;
+	tio.c_cc[9] = 0x13;
+	tio.c_cc[10] = 0x1a;
+	tio.c_cc[11] = 0;
+	tio.c_cc[12] = 0x12;
+	tio.c_cc[13] = 0xf;
+	tio.c_cc[14] = 0x17;
+	tio.c_cc[15] = 016;
+	for (int i=16; i < 32; i++) tio.c_cc[i] = 0;
 
+	/* Set the baurate of the serial communication */
+	cfsetospeed(&tio,rate);
+	cfsetispeed(&tio,rate);
+
+	/* Restore the old port settings */
 	tcsetattr(tty_fd,TCSANOW,&tio);
+
+	long flag;
+	ioctl(tty_fd, F_GETFL, &flag);
+	flag |= O_NONBLOCK;
+	ioctl(tty_fd, F_SETFL, &flag);
 }
 
 Serial::~Serial() {
 }
 
-int Serial::write(char * buffer, int size){
+int Serial::write(char * buffer, int len){
 
-	int n = ::write(tty_fd, buffer, size);
-
-	tcdrain(tty_fd);
-	sleep(1);
-
-	return n;
+	int pos = 0;
+	while (pos < len) {
+		int bytes = len - pos;
+		if (bytes > MAX_SERIAL_BYTES) bytes = MAX_SERIAL_BYTES;
+		int sent = ::write(tty_fd, buffer+pos, bytes);
+		sleep(10);
+		pos += sent;
+		::tcdrain(tty_fd);
+	}
+	return pos;
 }
 
-int Serial::read(char * buffer, int size){
+int Serial::read(char * buffer, int len){
 
-	int n = ::read(tty_fd, buffer,BUFSIZE-1);
-
-	if(n > 0 ){
-		buffer[n] = 0;
-	}else{
-		perror("failed to read the buffer...");
-	}
-
-	return n;
+	return read(buffer, len, false);
 }
 
 int Serial::read(char * buffer, int len, bool block){
 
 	int n = 0;
 
-	char *buffer_aux = new char[len];
+	if (block) {
+		fd_set r;
 
-	if(block){
-		std::cout<< "Waiting for data with block" << std::endl;
-		while(n <= 10){
-			n += ::read(tty_fd, buffer_aux,len);
-			std::cout << "Buffer_aux: " << buffer_aux << std::endl;
+		FD_ZERO(&r);
+		FD_SET(tty_fd, &r);
+		select (tty_fd+1, &r, NULL, NULL, NULL);
+
+		int pos = 0;
+		while(pos  < len){
+			int bytes = len - pos;
+			int receive = ::read(tty_fd, buffer+pos, bytes);
+			std::cout << "Buffer: " << buffer << std::endl;
+			pos += receive;
 		}
+		n = pos;
 	}else{
-		std::cout << "Waiting for data without block" << std::endl;
-		n = ::read(tty_fd, buffer,len);
+		n = ::read(tty_fd, buffer, len);
 	}
-
-	memcpy(buffer,buffer_aux,len);
-
-//	if(n > 0 ){
-//		buffer[n+1] = 0 ;
-//	}else{
-//		perror("failed to read the buffer...");
-//	}
-
-	delete[] buffer_aux;
-
 	return n;
 }
 
+char Serial::read_byte() {
+    char c;
+    read(&c, 1, false);
+    return c;
+}
 
 
 

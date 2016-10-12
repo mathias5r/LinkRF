@@ -103,7 +103,7 @@ void Framework::send(char *buffer, int len){
 
 		frame[j+1] = 0x7E; // End delimitation of the frame using flag 0x7E (01111110)
 
-		frame[j+2] = '\n'; // Char delimitator - The RF receiver needs it to recognize a new frame
+		frame[j+2] = 0; // Char delimitator - The RF receiver needs it to recognize a new frame
 
 		std::cout << "Final Frame: " << frame << std::endl;
 
@@ -138,11 +138,7 @@ int Framework::receive(char* buffer){
 	std::cout << "Frame read: " << frame << "    n: " << n << std::endl;
 
 	char *frame_aux = new char[strlen(frame)];
-	memcpy(frame_aux,frame+1,strlen(frame));
-
-	frame_aux[strlen(frame)-3] = 0;
-	frame_aux[strlen(frame)-4] = 0;
-	frame_aux[strlen(frame)-5] = 0;
+	memcpy(frame_aux,frame+1,strlen(frame)-3);
 
 	std::cout << "frame[strlen(frame)]: " << frame_aux[67] << std::endl;
 	std::cout << "Frame_aux: " << frame_aux << std::endl;
@@ -159,7 +155,7 @@ int Framework::receive(char* buffer){
 	}
 
 	memcpy(buffer, this->buffer, BUFSIZE);
-	std::cout << "Data received: " << buffer  << std::endl;
+	std::cout << "Data received: " << buffer << std::endl;
 
 	delete[] frame_aux;
 
@@ -218,6 +214,10 @@ bool Framework::handle(char byte){
 			this->buffer[n_bytes] = 0x7D;
 			this->currentState = reception;
 			break;
+		case(0x7E):
+				std::cout << "End delimitation found!" << std::endl;
+				this->currentState = waiting;
+				return true; // frame finished
 		default:
 			this->buffer[n_bytes] = byte;
 			this->currentState = reception;

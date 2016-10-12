@@ -32,6 +32,8 @@ File::~File(){}
  */
 int File::readfile(char * buffer, unsigned int len, unsigned long position){
 
+	int n = 0;
+
 	std::ifstream in_file (this->path, std::ios_base::in | std::ios_base::binary );
 	if(!in_file.is_open()){
 		std::cerr << "Fail to open the file in write mode!" << std::endl;
@@ -44,7 +46,7 @@ int File::readfile(char * buffer, unsigned int len, unsigned long position){
 		}
 	}
 	in_file.close();
-	return  1;
+	return  n;
 }
 
 /*

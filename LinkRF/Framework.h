@@ -18,6 +18,8 @@
 #define PPPINITFCS16 0xffff
 #define PPPGOODFSCS16 0xf0b8
 
+#define BUFSIZE 1024
+
 class Framework {
 
 public:
