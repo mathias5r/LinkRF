@@ -1,9 +1,1 @@
-O Word é um conceituado editor de textos digitais, sendo líder no segmento, e está presente na grande maioria dos computadores do mundo inteiro, utilizado para diversos fins, como desenvolvimento de relatórios, trabalhos e artigos, e tudo isso graças às suas ferramentas extremamente profissionais.
-
-Para evitar selecionar todo o texto após escrito e formatá-lo conforme desejado, é comum fazermos as modificações que queremos antes de começar a escrever, mas caso não tenha ideia se o tipo de letra escolhida ou o espaçamento definido está como se quer, uma dica é criar textos automáticos no Word.
-
-O Word conta com uma função capaz de gerar uma quantidade de texto definida pelo usuário, permitindo que você visualize com maior facilidade a formatação do texto, sem que seja necessário começar a escrever e então selecionar tudo para ajustar novamente.
-
-O processo é muito simples, primeiro você deve ter em mente a quantidade de texto que você deseja que o Word crie. A função de criar textos automáticos do Word funciona através da definição de quantos parágrafos e de quantas frases por parágrafo você quer que seja gerado. O Word gera algo em torno de 20 palavras por frase.
-
-No local onde você deseja que o texto seja criado, basta digitar o seguinte código:
+~this is a }]^}]]}]^}]}]]]^^}^}^ test message��~

@@ -92,7 +92,6 @@ int Serial::read(char * buffer, int len, bool block){
 		while(pos  < len){
 			int bytes = len - pos;
 			int receive = ::read(tty_fd, buffer+pos, bytes);
-			std::cout << "Buffer: " << buffer << std::endl;
 			pos += receive;
 		}
 		n = pos;
