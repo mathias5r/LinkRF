@@ -24,7 +24,8 @@ private:
 		A,B,C,D
 	};
 	State currentstate;
-	int sequenceN, sequenceM;
+	int sequenceN, sequenceM
+	bool canSend;
 	bool handle(char * buffer, int len);
 };
 

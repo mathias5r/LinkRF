@@ -11,6 +11,7 @@ ARQ::ARQ(Framework & f):framework(f){
 	this->currentstate = A;
 	this->sequenceN = 0;
 	this->sequenceM = 0;
+	this->canSend = true;
 }
 
 void ARQ::type(){};
@@ -19,7 +20,7 @@ bool ARQ::handle(char * buffer, int len){
 
 	switch(this->currentstate){
 		case A:
-			if(payload == true){ // Como saber se é payload?
+			if(Event(RequestToSend)){ // Como saber se é payload?
 				this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
 				this->currentstate = B;
 			}else if(receive(dataM) == true){ // Essa função não pode ser bloqueiante, como fazer?
