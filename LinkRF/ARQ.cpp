@@ -17,16 +17,38 @@ ARQ::ARQ(Framework & f):framework(f){
 void ARQ::type(){};
 
 bool ARQ::handle(char * buffer, int len){
+	int fd = 0; // o descritor 0 corresponde à entrada padrão ...
+	int max_fd = fd;
+	struct timeval timeout; // para especificar o timeout
+	timeout.tv_sec = 5; //timeout de 2 segundos
+	timeout.tv_usec = 0;
+	fd_set espera; // um conjunto de descritores
+	FD_ZERO(&espera); // zera o conjunto de descritores
+	FD_SET(fd, &espera); // adiciona "fd" ao conjunto de descritores
 
 	switch(this->currentstate){
 		case A:
-			if(Event(RequestToSend)){ // Como saber se é payload?
-				this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
-				this->currentstate = B;
-			}else if(receive(dataM) == true){ // Essa função não pode ser bloqueiante, como fazer?
-				this->framework.send((char *)"",0,1,sequenceM);// Como é feito o número de sequência?
-				this->currentstate = A;
+			if (select(max_fd+1, &espera, NULL, NULL, &timeout) == 0) {
+			    puts("Timeout !");
+			}else {
+			    // a seguir se verifica que descritores podem ser lidos sem risco de bloqueio
+			    // i.e.: que descritores estão prontos para serem acessados
+			    if (FD_ISSET(fd, &espera)) {
+					this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
+					this->currentstate = B;
+			    }else if(this->framework.get_bytes() > 0){ // Essa função não pode ser bloqueiante, como fazer?
+					this->framework.send((char *)"",0,1,sequenceM);// Como é feito o número de sequência?
+					this->currentstate = A;
+			    }
 			}
+//
+//			if(Event(RequestToSend)){ // Como saber se é payload?
+//				this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
+//				this->currentstate = B;
+//			}else if(receive(dataM) == true){ // Essa função não pode ser bloqueiante, como fazer?
+//				this->framework.send((char *)"",0,1,sequenceM);// Como é feito o número de sequência?
+//				this->currentstate = A;
+//			}
 			break;
 		case B:
 			if(receive(ackN) == true){

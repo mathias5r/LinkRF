@@ -39,6 +39,7 @@ public:
 	int get_max_bytes() { return max_bytes; }
 	int get_min_bytes() { return min_bytes; }
 	char * get_buffer() { return buffer; }
+	int get_bytes() { return n_bytes; }
 
 	// setters
 	void set_buffer(char * buff) { buffer = buff; }
