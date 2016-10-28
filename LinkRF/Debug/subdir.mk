@@ -6,6 +6,7 @@
 CPP_SRCS += \
 ../ARQ.cpp \
 ../CRC.cpp \
+../Dispacher.cpp \
 ../File.cpp \
 ../Framework.cpp \
 ../Serial.cpp \
@@ -14,6 +15,7 @@ CPP_SRCS += \
 OBJS += \
 ./ARQ.o \
 ./CRC.o \
+./Dispacher.o \
 ./File.o \
 ./Framework.o \
 ./Serial.o \
@@ -22,6 +24,7 @@ OBJS += \
 CPP_DEPS += \
 ./ARQ.d \
 ./CRC.d \
+./Dispacher.d \
 ./File.d \
 ./Framework.d \
 ./Serial.d \

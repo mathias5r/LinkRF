@@ -30,7 +30,7 @@ class Framework{
 public:
 	Framework(Serial& s, int bytes_min, int bytes_max);
 	virtual ~Framework(){};
-	void send(char *buffer, int len, int type, int seq);
+	int send(char *buffer, int len, int type, int seq);
 	int receive(char* buffer);
 	char * mount(char* data, int len, int type, int seq);
 

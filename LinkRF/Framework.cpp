@@ -21,7 +21,7 @@ Framework::Framework(Serial & s, int bytes_min, int bytes_max):serial(s) {
 
 }
 
-void Framework::send(char *buffer, int len, int type, int seq){
+int Framework::send(char *buffer, int len, int type, int seq){
 
 	cout << "Início do enquadramento..." << endl;
 
@@ -33,11 +33,14 @@ void Framework::send(char *buffer, int len, int type, int seq){
 		int n;
 		if(!(n = serial.write(frame, strlen(frame)) > 0)){
 			cout << "Erro ao escrever quadro na serial: " << n << endl;
+			return -1;
 		}
 	} else {
 		cout << "Erro: quadro excedeu o limite máximo!" << endl;
-		// ARQ - START
+		return -1;
 	}
+
+	return 1;
 }
 
 char * Framework::mount(char* data, int len, int type, int seq){

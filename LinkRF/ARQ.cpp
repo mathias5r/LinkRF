@@ -11,76 +11,125 @@ ARQ::ARQ(Framework & f):framework(f){
 	this->currentstate = A;
 	this->sequenceN = 0;
 	this->sequenceM = 0;
-	this->canSend = true;
+	this->canSend = false;
+	this->received = false;
+	this->backoff = false;
+	this->timeout = false;
 }
 
-void ARQ::type(){};
-
 bool ARQ::handle(char * buffer, int len){
-	int fd = 0; // o descritor 0 corresponde à entrada padrão ...
-	int max_fd = fd;
-	struct timeval timeout; // para especificar o timeout
-	timeout.tv_sec = 5; //timeout de 2 segundos
-	timeout.tv_usec = 0;
-	fd_set espera; // um conjunto de descritores
-	FD_ZERO(&espera); // zera o conjunto de descritores
-	FD_SET(fd, &espera); // adiciona "fd" ao conjunto de descritores
 
 	switch(this->currentstate){
 		case A:
-			if (select(max_fd+1, &espera, NULL, NULL, &timeout) == 0) {
-			    puts("Timeout !");
-			}else {
-			    // a seguir se verifica que descritores podem ser lidos sem risco de bloqueio
-			    // i.e.: que descritores estão prontos para serem acessados
-			    if (FD_ISSET(fd, &espera)) {
-					this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
-					this->currentstate = B;
-			    }else if(this->framework.get_bytes() > 0){ // Essa função não pode ser bloqueiante, como fazer?
-					this->framework.send((char *)"",0,1,sequenceM);// Como é feito o número de sequência?
-					this->currentstate = A;
-			    }
+			if(this->canSend){
+				this->framework.send(buffer,len,0,sequenceN);
+				this->currentstate = B;
+			}else if(this->received){
+				test_data(buffer,len);
+				this->currentstate = A;
 			}
-//
-//			if(Event(RequestToSend)){ // Como saber se é payload?
-//				this->framework.send(buffer,len,0,sequenceN); // Como é feito o número de sequência?
-//				this->currentstate = B;
-//			}else if(receive(dataM) == true){ // Essa função não pode ser bloqueiante, como fazer?
-//				this->framework.send((char *)"",0,1,sequenceM);// Como é feito o número de sequência?
-//				this->currentstate = A;
-//			}
 			break;
 		case B:
-			if(receive(ackN) == true){
-				set_backoff();
-				this->currentstate = C;
-			}else if(receive(dataM) == true){
-				this->framework.send((char *)"",0,1,sequenceM);
-				this->currentstate = B;
-			}else if(timeout == true || receive(ackN)){
-				set_backoff();
+			if(this->received){
+				if(test_data(buffer,len)){
+					int rd = rand() % 10 + 1;
+					usleep(rd*1000); //BACKOFF
+					this->currentstate = B;
+				}else if(test_ack(buffer,len)){
+					int rd = rand() % 10 + 1;
+					usleep(rd*1000); //BACKOFF
+					this->currentstate = C;
+				}
+			}else if(this->timeout){
+				int rd = rand() % 10 + 1;
+				usleep(rd*1000); //BACKOFF
 				this->currentstate = D;
 			}
 			break;
 		case C:
-			if(backoff == true){
+			if(this->backoff){
 				this->currentstate = A;
-			}else if(receive(dataM)){
-				this->framework.send((char *)"",0,1,sequenceM);
+			}else if(this->received){
+				test_data(buffer,len);
 				this->currentstate = C;
 			}
 			break;
 		case D:
-			if(backoff == true){
-				this->framework.send(buffer,len,0,sequenceN);
+			if(this->backoff){
+				if(!(this->framework.send(buffer,len,0,sequenceN)) > 0){
+					cout << "Erro ao enviar quadro de sequencia: " << this->sequenceN << endl;
+				}
 				this->currentstate = B;
-			}else if(receive(dataM)){
-				this->framework.send((char *)"",0,1,sequenceM);
-				this->currentstate = D;
+			}else if(this->received){
+				if(test_data(buffer,len)){
+					this->currentstate = D;
+				}
 			}
 			break;
 	}
 	return false;
 }
 
+bool ARQ::test_data(char * buffer, int len){
+
+	Type r = get_type(buffer,len);
+	if(r == data0){
+		this->sequenceM = 0;
+		if(!(this->framework.send((char*)"",0,1,this->sequenceM) > 0)){
+			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
+		}
+		return true;
+	}else if(r == data1){
+		this->sequenceM = 1;
+		if(!(this->framework.send((char*)"",0,1,this->sequenceM) > 0)){
+			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
+		}
+		return true;
+	}else{
+		cout << "Erro: tipo de mensagem não coerente" << endl;
+	}
+	return false;
+}
+
+bool ARQ::test_ack(char * buffer, int len){
+
+	Type r = get_type(buffer,len);
+	if(r == ack0){
+		if(sequenceN == 0){
+			sequenceN = 1;
+			//CONFIGURAR BACKOFF E INICIÁ-LO
+			return true;
+		}
+	}else if( r == ack1){
+		if(sequenceN == 1){
+			sequenceN = 0;
+			//CONFIGURAR BACKOFF E INICIÁ-LO
+			return true;
+		}
+	}
+
+	return false;
+}
+
+ARQ::Type ARQ::get_type(char * buffer, int len){
+
+	switch(buffer[1]){
+		case(0x00):
+			return data0;
+			break;
+		case(0x01):
+			return data1;
+			break;
+		case(0x02):
+			return ack0;
+			break;
+		case(0x03):
+			return ack1;
+			break;
+		default:
+			cout << "Erro: Tipo de mensagem não identificada!: " << buffer[1] << endl;
+			break;
+	}
+	return none;
+}
 
