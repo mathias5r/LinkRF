@@ -107,5 +107,9 @@ char Serial::read_byte() {
     return c;
 }
 
+int Serial::get_fd(){
+	return this->tty_fd;
+}
+
 
 

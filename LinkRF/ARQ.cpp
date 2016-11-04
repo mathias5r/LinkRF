@@ -7,7 +7,7 @@
 
 #include "ARQ.h"
 
-ARQ::ARQ(Framework & f):framework(f){
+ARQ::ARQ(Framework * f, int transceiver, int aplicacao){
 	this->currentstate = A;
 	this->sequenceN = 0;
 	this->sequenceM = 0;
@@ -15,53 +15,58 @@ ARQ::ARQ(Framework & f):framework(f){
 	this->received = false;
 	this->backoff = false;
 	this->timeout = false;
+	this->aplicacao = aplicacao;
+	this->transceiver = transceiver;
+	this->framework = f;
 }
 
-bool ARQ::handle(char * buffer, int len){
+bool ARQ::handle(){
 
 	switch(this->currentstate){
 		case A:
-			if(this->canSend){
-				this->framework.send(buffer,len,0,sequenceN);
+			cout << "Estado A " << endl;
+			if(this->canSend){ // Recebeu um payload da aplicação
+				this->framework->send(0,this->sequenceN);
 				this->currentstate = B;
 			}else if(this->received){
-				test_data(buffer,len);
+				Framework::Type r = this->framework->receive();
+				test_data(r);
 				this->currentstate = A;
 			}
 			break;
 		case B:
-			if(this->received){
-				if(test_data(buffer,len)){
-					int rd = rand() % 10 + 1;
-					usleep(rd*1000); //BACKOFF
+			cout << "Estado B " << endl;
+			if(this->received){// Recebeu frame do transceiver
+				Framework::Type r = this->framework->receive();
+				if(test_data(r)){
 					this->currentstate = B;
-				}else if(test_ack(buffer,len)){
-					int rd = rand() % 10 + 1;
-					usleep(rd*1000); //BACKOFF
+				}else if(test_ack(r)){
 					this->currentstate = C;
 				}
 			}else if(this->timeout){
-				int rd = rand() % 10 + 1;
-				usleep(rd*1000); //BACKOFF
 				this->currentstate = D;
 			}
 			break;
 		case C:
+			cout << "Estado C " << endl;
 			if(this->backoff){
 				this->currentstate = A;
 			}else if(this->received){
-				test_data(buffer,len);
+				Framework::Type r = this->framework->receive();
+				test_data(r);
 				this->currentstate = C;
 			}
 			break;
 		case D:
+			cout << "Estado D " << endl;
 			if(this->backoff){
-				if(!(this->framework.send(buffer,len,0,sequenceN)) > 0){
+				if(!(this->framework->send(0,sequenceN)) > 0){
 					cout << "Erro ao enviar quadro de sequencia: " << this->sequenceN << endl;
 				}
 				this->currentstate = B;
 			}else if(this->received){
-				if(test_data(buffer,len)){
+				Framework::Type r = this->framework->receive();
+				if(test_data(r)){
 					this->currentstate = D;
 				}
 			}
@@ -70,18 +75,17 @@ bool ARQ::handle(char * buffer, int len){
 	return false;
 }
 
-bool ARQ::test_data(char * buffer, int len){
+bool ARQ::test_data(Framework::Type r){
 
-	Type r = get_type(buffer,len);
-	if(r == data0){
+	if(r == Framework::data0){
 		this->sequenceM = 0;
-		if(!(this->framework.send((char*)"",0,1,this->sequenceM) > 0)){
+		if(!(this->framework->send(1,this->sequenceM) > 0)){
 			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
 		}
 		return true;
-	}else if(r == data1){
+	}else if(r == Framework::data1){
 		this->sequenceM = 1;
-		if(!(this->framework.send((char*)"",0,1,this->sequenceM) > 0)){
+		if(!(this->framework->send(1,this->sequenceM) > 0)){
 			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
 		}
 		return true;
@@ -91,19 +95,16 @@ bool ARQ::test_data(char * buffer, int len){
 	return false;
 }
 
-bool ARQ::test_ack(char * buffer, int len){
+bool ARQ::test_ack(Framework::Type r){
 
-	Type r = get_type(buffer,len);
-	if(r == ack0){
+	if(r == Framework::ack0){
 		if(sequenceN == 0){
 			sequenceN = 1;
-			//CONFIGURAR BACKOFF E INICIÁ-LO
 			return true;
 		}
-	}else if( r == ack1){
+	}else if(r == Framework::ack1){
 		if(sequenceN == 1){
 			sequenceN = 0;
-			//CONFIGURAR BACKOFF E INICIÁ-LO
 			return true;
 		}
 	}
@@ -111,25 +112,4 @@ bool ARQ::test_ack(char * buffer, int len){
 	return false;
 }
 
-ARQ::Type ARQ::get_type(char * buffer, int len){
-
-	switch(buffer[1]){
-		case(0x00):
-			return data0;
-			break;
-		case(0x01):
-			return data1;
-			break;
-		case(0x02):
-			return ack0;
-			break;
-		case(0x03):
-			return ack1;
-			break;
-		default:
-			cout << "Erro: Tipo de mensagem não identificada!: " << buffer[1] << endl;
-			break;
-	}
-	return none;
-}
 

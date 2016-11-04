@@ -8,8 +8,10 @@ CPP_SRCS += \
 ../CRC.cpp \
 ../Dispacher.cpp \
 ../File.cpp \
+../Frame.cpp \
 ../Framework.cpp \
 ../Serial.cpp \
+../Tun.cpp \
 ../main.cpp 
 
 OBJS += \
@@ -17,8 +19,10 @@ OBJS += \
 ./CRC.o \
 ./Dispacher.o \
 ./File.o \
+./Frame.o \
 ./Framework.o \
 ./Serial.o \
+./Tun.o \
 ./main.o 
 
 CPP_DEPS += \
@@ -26,8 +30,10 @@ CPP_DEPS += \
 ./CRC.d \
 ./Dispacher.d \
 ./File.d \
+./Frame.d \
 ./Framework.d \
 ./Serial.d \
+./Tun.d \
 ./main.d 
 
 

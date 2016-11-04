@@ -7,23 +7,35 @@
 
 #include "Dispacher.h"
 
-Dispacher::Dispacher(ARQ & arq):arq(arq) {};
+Dispacher::Dispacher() {
+
+	Serial t("/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/serial.txt",B9600);
+	Serial a("/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/aplicacao.txt",B9600); // Tun
+
+	this->trans = &t;
+	this->app = &a;
+	this->transceiver = this->trans->get_fd();
+	this->aplicacao  = this->app->get_fd(); // tun.get_fd();
+
+	Framework f(this->trans,this->app,8,2048);
+
+	this->framework = &f;
+
+	ARQ arq(framework,this->transceiver, this->aplicacao);
+
+	this->arq = &arq;
+}
 
 Dispacher::~Dispacher() {}
 
 void Dispacher::handle(){
 
-	int serial, app;
+//	int op = fcntl(this->aplicacao, F_GETFL);
+//	fcntl(this->aplicacao, F_SETFL, op | O_NONBLOCK);
 
-	serial = open("/dev/ttyUSB0", O_RDONLY, O_NONBLOCK);
-	app = 0;
-
-	int op = fcntl(app, F_GETFL);
-	fcntl(app, F_SETFL, op | O_NONBLOCK);
-
-	struct timeval timeout;
-	timeout.tv_sec = 5;
-	timeout.tv_usec = 0;
+//	struct timeval timeout;
+//	timeout.tv_sec = 5;
+//	timeout.tv_usec = 0;
 
 	while(true){
 		// cria um conjunto de descritores
@@ -32,37 +44,26 @@ void Dispacher::handle(){
 		// inicia o conjunto de descritores, e nele
 		// acrescenta fd1 e fd2
 		FD_ZERO(&r);
-		FD_SET(serial, &r);
-		FD_SET(app, &r);
+		FD_SET(this->transceiver, &r);
+		FD_SET(this->aplicacao, &r);
 
 		int n;
 
-		if( (n = select(serial+1, &r, NULL, NULL, &timeout)) == 0 ){
-			this->arq.set_timeout(true);
-			this->arq.handle((char*)"",0);
-		}else{
+		cout << "Ha " << n << " descritores prontos" << endl;
 
-
-			cout << "Ha " << n << " descritores prontos" << endl;
+		if( (n = select(transceiver+1, &r, NULL, NULL, NULL)) == 0 ){
 
 			// testa se fd1 está pronto para ser acessado
-			if (FD_ISSET(serial, &r)) {
-				char buffer[1024];
-				cout << "Descritor do random: ";
-				cout << read(serial, buffer, 1024) << " bytes" << endl;
-				this->arq.set_received(true);
-				this->arq.handle(buffer,1024);
+			if (FD_ISSET(this->transceiver, &r)) {
+				this->arq->set_received(true);
+				this->arq->handle();
 			}
 
 			// testa se fd1 está pronto para ser acessado
-			if (FD_ISSET(app, &r)) {
-				char buffer[1024];
-				cout << "Descritor do teclado: ";
-				cout << read(app, buffer, 1024) << " bytes" << endl;
-				this->arq.set_canSend(true);
-				this->arq.handle(buffer,1024);
+			if (FD_ISSET(this->aplicacao, &r)) {
+				this->arq->set_canSend(true);
+				this->arq->handle();
 			}
 		}
-
 	}
 }

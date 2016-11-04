@@ -1,9 +1,18 @@
-main.d: ../main.cpp ../Serial.h ../File.h ../Framework.h ../CRC.h
+main.d: ../main.cpp ../Dispacher.h ../Tun.h ../Definitions.h ../Frame.h \
+ ../ARQ.h ../Framework.h ../Serial.h ../CRC.h
 
-../Serial.h:
+../Dispacher.h:
 
-../File.h:
+../Tun.h:
+
+../Definitions.h:
+
+../Frame.h:
+
+../ARQ.h:
 
 ../Framework.h:
+
+../Serial.h:
 
 ../CRC.h:

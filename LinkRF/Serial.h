@@ -44,6 +44,8 @@ class Serial {
   int read(char * buffer, int len, bool block);
 
   char read_byte();
+
+  int get_fd();
 };
 
 #endif

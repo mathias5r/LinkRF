@@ -15,12 +15,11 @@ using namespace std;
 
 class ARQ {
 public:
-	enum Type{ data0,ack0,data1,ack1,none };
-	ARQ(Framework & f);
+	ARQ(Framework * f, int transceiver, int aplicacao);
 	virtual ~ARQ(){};
 	bool send(char * buffer, int len);
-	bool test_data(char * buffer, int len);
-	bool test_ack(char * buffer, int len);
+	bool test_data(Framework::Type);
+	bool test_ack(Framework::Type);
 
 	void set_canSend(bool state){ this->canSend = state; };
 	void set_received(bool state){ this->received = state; };
@@ -32,11 +31,10 @@ public:
 	bool get_timeout(){ return this->timeout; };
 	bool get_backoff(){ return this->backoff; };
 
-	bool handle(char * buffer, int len);
+	bool handle();
 
 private:
-	Type get_type(char * buffer, int len);
-	Framework & framework;
+	Framework * framework;
 	enum State{
 		A,B,C,D
 	};
@@ -44,7 +42,7 @@ private:
 	int sequenceN;
 	int sequenceM;
 	bool canSend, received, timeout, backoff;
-
+	int transceiver, aplicacao;
 };
 
 #endif /* ARQ_H_ */

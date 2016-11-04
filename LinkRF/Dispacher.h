@@ -14,19 +14,29 @@
 #include <iostream>
 #include <fcntl.h>
 
+#include "Tun.h"
 #include "ARQ.h"
+#include "Framework.h"
+#include "Serial.h"
+
 
 using namespace std;
 
 class Dispacher {
 public:
-	Dispacher(ARQ & arq);
+	Dispacher();
 	Dispacher(const Dispacher& d);
 	void handle();
 	void handle_forever();
 	virtual ~Dispacher();
 private:
-	ARQ& arq;
+	ARQ * arq;
+	Serial * trans;
+	Serial * app;
+	Framework * framework;
+	Tun tun;
+	int transceiver, aplicacao;
+
 };
 
 #endif /* DISPACHER_H_ */
