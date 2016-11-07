@@ -29,7 +29,7 @@ class Framework{
 
 public:
 	enum Type{ data0,ack0,data1,ack1,none };
-	Framework(Serial * transceiver, Serial * aplicacao, int bytes_min, int bytes_max);
+	Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max);
 	virtual ~Framework(){};
 	int send(int type, int seq);
 	Type receive();
@@ -49,8 +49,8 @@ public:
 private:
 
 	CRC * crc;
-	Serial * transceiver;
-	Serial * aplicacao;
+	Serial & transceiver;
+	Serial & aplicacao;
 	int min_bytes, max_bytes; // max and min number of bytes allowed for each frame
 	char * buffer;
 	// bytes recebidos pela MEF até o momento

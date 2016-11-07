@@ -19,22 +19,17 @@
 #include "Framework.h"
 #include "Serial.h"
 
-
 using namespace std;
 
 class Dispacher {
 public:
-	Dispacher();
+	Dispacher(ARQ & a, int fd_transceiver, int fd_serial);
 	Dispacher(const Dispacher& d);
 	void handle();
 	void handle_forever();
 	virtual ~Dispacher();
 private:
-	ARQ * arq;
-	Serial * trans;
-	Serial * app;
-	Framework * framework;
-	Tun tun;
+	ARQ & arq;
 	int transceiver, aplicacao;
 
 };

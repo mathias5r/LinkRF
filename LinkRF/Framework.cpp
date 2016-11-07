@@ -9,7 +9,7 @@
 
 #include "Framework.h"
 
-Framework::Framework(Serial * transceiver, Serial * aplicacao, int bytes_min, int bytes_max) {
+Framework::Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max): transceiver(tr), aplicacao(app) {
 	this->min_bytes = bytes_min;
 	this->max_bytes = bytes_max;
 	this->buffer = new char[BUFSIZE];
@@ -17,33 +17,32 @@ Framework::Framework(Serial * transceiver, Serial * aplicacao, int bytes_min, in
 	this->currentState = waiting;
 	CRC crc;
 	this->crc = &crc;
-	this->transceiver = transceiver;
-	this->aplicacao = aplicacao;
 }
 
 int Framework::send(int type, int seq){
 
 	cout << "Início do enquadramento..." << endl;
 
-	char *buffer_payload;
+	char *buffer_payload = new char[BUFSIZE];
 
 	int n;
 
 	if(type != 1){
-		if(!(n = (this->aplicacao->read(buffer_payload,1024))) > 0){
+		if(!(n = (this->aplicacao.read(buffer_payload,1024))) > 0){
 			cout << "Lido da aplicação com sucesso!" << endl;
 		}
 	}else{
-		buffer_payload = 0;
+		*buffer_payload = 'a';
+		n = this->min_bytes;
 	}
 
 	char* frame;
 
 	if (n >= this->min_bytes && n <= this->max_bytes) {
-		frame = mount(buffer_payload,n,type, seq);
+		frame = mount(buffer_payload,strlen(buffer_payload),type, seq);
 		cout << "Quadro: " << frame << endl;
 		int k;
-		if(!(k = transceiver->write(frame, strlen(frame)) > 0)){
+		if(!(k = transceiver.write(frame, strlen(frame)) > 0)){
 			cout << "Erro ao escrever quadro na serial: " << k << endl;
 			return -1;
 		}
@@ -65,7 +64,7 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 	frame[1] = header(type, seq);
 
 	int i,j;
-	for( i=1, j=2 ; i <= len ; i++,j++ ){
+	for( i=0, j=2 ; i < len ; i++,j++ ){
 		switch(buffer[i]){
 			case(0x7E):
 				frame[j] = 0x7D;
@@ -84,10 +83,13 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 		}
 	}
 
-	this->crc->gen_crc((unsigned char *)frame+1,j-2);
+	//this->crc->gen_crc((unsigned char *)frame+1,j-2);
 
-	frame[j+1] = 0x7E; // Flag de fim de quadro
-	frame[j+2] = 0; // Delimitador de char
+//	frame[j+1] = 0x7E; // Flag de fim de quadro
+//	frame[j+2] = 0; // Delimitador de char
+
+	frame[j] = 0x7E; // Flag de fim de quadro
+	frame[j+1] = 0; // Delimitador de char
 
 	return frame;
 }
@@ -106,11 +108,11 @@ Framework::Type Framework::receive(){
 	while(!end_flag){
 		if(k >= FRAME_MAXSIZE){
 			cout << "Quadro excedeu o limite máximo de bytes!: " << k << endl;
-			Framework::none;
+			return Framework::none;
 		}
-		if(!(n = this->transceiver->read(frame+k,1, true)) > 0){
+		if(!(n = this->transceiver.read(frame+k,1, true)) > 0){
 			std::cout << "Erro ao ler byte do quadro:  " << n << std::endl;
-			Framework::none;
+			return Framework::none;
 		}else{
 			k += n;
 			if(frame[k-1] == '~'){
@@ -134,10 +136,10 @@ Framework::Type Framework::receive(){
 		return_fsm = this->handle(frame_byte);
 	}
 
-	Framework::Type r = get_type(frame[1]);
+	Framework::Type r = get_type(this->buffer[0]);
 
-	if(!(n = this->aplicacao->write(frame,strlen(frame)))){
-		std::cout << "CRC does not match!: " << buffer  << std::endl;
+	if(!(n = this->aplicacao.write(this->buffer,strlen(this->buffer)))){
+		std::cout << "CRC does not match!: " << this->buffer  << std::endl;
 		return Framework::none;
 	}
 
@@ -181,6 +183,7 @@ bool Framework::handle(char byte){
 		case(0x5E):
 			std::cout << "INFO: 0x7E found in position: " << n_bytes << " of the data" << std::endl;
     		this->buffer[n_bytes] = 0x7E;
+    		this->n_bytes++;
 			this->currentState = reception;
 			break;
 		case(0x5D):
@@ -232,8 +235,11 @@ char Framework::header(int type, int seq){
 
 Framework::Type Framework::get_type(char control){
 
+	bool bit0 = !!(control & (0 << 1));
+	bool bit1 = !!(control & (0 << 2));
+
 	switch(control){
-		case(0x00):
+		case(0x20):
 			return Framework::data0;
 			break;
 		case(0x01):

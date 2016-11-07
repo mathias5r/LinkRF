@@ -7,23 +7,9 @@
 
 #include "Dispacher.h"
 
-Dispacher::Dispacher() {
-
-	Serial t("/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/serial.txt",B9600);
-	Serial a("/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/aplicacao.txt",B9600); // Tun
-
-	this->trans = &t;
-	this->app = &a;
-	this->transceiver = this->trans->get_fd();
-	this->aplicacao  = this->app->get_fd(); // tun.get_fd();
-
-	Framework f(this->trans,this->app,8,2048);
-
-	this->framework = &f;
-
-	ARQ arq(framework,this->transceiver, this->aplicacao);
-
-	this->arq = &arq;
+Dispacher::Dispacher(ARQ & a, int fd_transceiver, int fd_app):arq(a) {
+	this->transceiver = fd_transceiver;
+	this->aplicacao = fd_app;
 }
 
 Dispacher::~Dispacher() {}
@@ -47,22 +33,22 @@ void Dispacher::handle(){
 		FD_SET(this->transceiver, &r);
 		FD_SET(this->aplicacao, &r);
 
-		int n;
+		int n = 0;
 
 		cout << "Ha " << n << " descritores prontos" << endl;
 
-		if( (n = select(transceiver+1, &r, NULL, NULL, NULL)) == 0 ){
+		if( !(n = select(aplicacao+1, &r, NULL, NULL, NULL)) == 0 ){
 
 			// testa se fd1 está pronto para ser acessado
 			if (FD_ISSET(this->transceiver, &r)) {
-				this->arq->set_received(true);
-				this->arq->handle();
+				this->arq.set_received(true);
+				this->arq.handle();
 			}
 
 			// testa se fd1 está pronto para ser acessado
 			if (FD_ISSET(this->aplicacao, &r)) {
-				this->arq->set_canSend(true);
-				this->arq->handle();
+				this->arq.set_canSend(true);
+				this->arq.handle();
 			}
 		}
 	}

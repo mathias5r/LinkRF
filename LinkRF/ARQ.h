@@ -15,7 +15,7 @@ using namespace std;
 
 class ARQ {
 public:
-	ARQ(Framework * f, int transceiver, int aplicacao);
+	ARQ(Framework & f);
 	virtual ~ARQ(){};
 	bool send(char * buffer, int len);
 	bool test_data(Framework::Type);
@@ -34,7 +34,7 @@ public:
 	bool handle();
 
 private:
-	Framework * framework;
+	Framework & framework;
 	enum State{
 		A,B,C,D
 	};
@@ -42,7 +42,6 @@ private:
 	int sequenceN;
 	int sequenceM;
 	bool canSend, received, timeout, backoff;
-	int transceiver, aplicacao;
 };
 
 #endif /* ARQ_H_ */

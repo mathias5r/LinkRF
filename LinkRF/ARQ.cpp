@@ -7,7 +7,7 @@
 
 #include "ARQ.h"
 
-ARQ::ARQ(Framework * f, int transceiver, int aplicacao){
+ARQ::ARQ(Framework & f): framework(f){
 	this->currentstate = A;
 	this->sequenceN = 0;
 	this->sequenceM = 0;
@@ -15,9 +15,7 @@ ARQ::ARQ(Framework * f, int transceiver, int aplicacao){
 	this->received = false;
 	this->backoff = false;
 	this->timeout = false;
-	this->aplicacao = aplicacao;
-	this->transceiver = transceiver;
-	this->framework = f;
+
 }
 
 bool ARQ::handle(){
@@ -26,10 +24,10 @@ bool ARQ::handle(){
 		case A:
 			cout << "Estado A " << endl;
 			if(this->canSend){ // Recebeu um payload da aplicação
-				this->framework->send(0,this->sequenceN);
+				this->framework.send(0,this->sequenceN);
 				this->currentstate = B;
 			}else if(this->received){
-				Framework::Type r = this->framework->receive();
+				Framework::Type r = this->framework.receive();
 				test_data(r);
 				this->currentstate = A;
 			}
@@ -37,7 +35,7 @@ bool ARQ::handle(){
 		case B:
 			cout << "Estado B " << endl;
 			if(this->received){// Recebeu frame do transceiver
-				Framework::Type r = this->framework->receive();
+				Framework::Type r = this->framework.receive();
 				if(test_data(r)){
 					this->currentstate = B;
 				}else if(test_ack(r)){
@@ -52,7 +50,7 @@ bool ARQ::handle(){
 			if(this->backoff){
 				this->currentstate = A;
 			}else if(this->received){
-				Framework::Type r = this->framework->receive();
+				Framework::Type r = this->framework.receive();
 				test_data(r);
 				this->currentstate = C;
 			}
@@ -60,12 +58,12 @@ bool ARQ::handle(){
 		case D:
 			cout << "Estado D " << endl;
 			if(this->backoff){
-				if(!(this->framework->send(0,sequenceN)) > 0){
+				if(!(this->framework.send(0,sequenceN)) > 0){
 					cout << "Erro ao enviar quadro de sequencia: " << this->sequenceN << endl;
 				}
 				this->currentstate = B;
 			}else if(this->received){
-				Framework::Type r = this->framework->receive();
+				Framework::Type r = this->framework.receive();
 				if(test_data(r)){
 					this->currentstate = D;
 				}
@@ -79,13 +77,13 @@ bool ARQ::test_data(Framework::Type r){
 
 	if(r == Framework::data0){
 		this->sequenceM = 0;
-		if(!(this->framework->send(1,this->sequenceM) > 0)){
+		if(!(this->framework.send(1,this->sequenceM) > 0)){
 			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
 		}
 		return true;
 	}else if(r == Framework::data1){
 		this->sequenceM = 1;
-		if(!(this->framework->send(1,this->sequenceM) > 0)){
+		if(!(this->framework.send(1,this->sequenceM) > 0)){
 			cout << "Erro ao enviar quadro de sequencia: " << this->sequenceM;
 		}
 		return true;
