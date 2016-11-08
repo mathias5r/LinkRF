@@ -8,8 +8,10 @@
  */
 
 #include "Framework.h"
+#include <bitset>
 
 Framework::Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max): transceiver(tr), aplicacao(app) {
+
 	this->min_bytes = bytes_min;
 	this->max_bytes = bytes_max;
 	this->buffer = new char[BUFSIZE];
@@ -17,37 +19,46 @@ Framework::Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max): t
 	this->currentState = waiting;
 	CRC crc;
 	this->crc = &crc;
+
 }
 
 int Framework::send(int type, int seq){
 
-	cout << "Início do enquadramento..." << endl;
+	cout << "INFO: Início do enquadramento..." << endl;
 
-	char *buffer_payload = new char[BUFSIZE];
+	char *buffer_payload = new char[BUFSIZE]; // Pode receber um dado de 1024 bytes da aplicação
 
 	int n;
 
-	if(type != 1){
-		if(!(n = (this->aplicacao.read(buffer_payload,1024))) > 0){
-			cout << "Lido da aplicação com sucesso!" << endl;
+	if(type != 1){ // Se for payload recebe da aplicação
+		off_t fsize = lseek(this->aplicacao.get_fd(),0,SEEK_END);
+		lseek(this->aplicacao.get_fd(),0L,0);
+		if((n = (this->aplicacao.read(buffer_payload,fsize,true))) > 0){
+			cout << "INFO: Leitura do descritor da aplicação: " << this->aplicacao.get_fd() << " com sucesso!" << endl;
+		}else{
+			cout << "ERRO: Falha na leitura do descritor da aplicação: " << this->aplicacao.get_fd() << endl;
+			return -1;
 		}
-	}else{
-		*buffer_payload = 'a';
-		n = this->min_bytes;
+	}else{ 									// Se não é ACK
+		*buffer_payload = 'a'; //Byte de enchimento
+		 n = this->min_bytes;
 	}
 
 	char* frame;
 
 	if (n >= this->min_bytes && n <= this->max_bytes) {
-		frame = mount(buffer_payload,strlen(buffer_payload),type, seq);
+		frame = mount(buffer_payload,n,type, seq);
 		cout << "Quadro: " << frame << endl;
 		int k;
-		if(!(k = transceiver.write(frame, strlen(frame)) > 0)){
-			cout << "Erro ao escrever quadro na serial: " << k << endl;
+		if((k = transceiver.write(frame, strlen(frame)) > 0)){
+			lseek(this->transceiver.get_fd(),0L,0);
+			cout << "INFO: Escrita no descritor do transceiver: " << this->transceiver.get_fd() << " com sucesso!" << endl;
+		}else{
+			cout << "ERRO: Falha na escrita no descritor do transceiver: " << this->transceiver.get_fd() << endl;
 			return -1;
 		}
 	} else {
-		cout << "Erro: quadro excedeu o limite máximo!" << endl;
+		cout << "ERRO: Quadro excedeu o limite máximo de envio: " << n << endl;
 		return -1;
 	}
 
@@ -56,7 +67,6 @@ int Framework::send(int type, int seq){
 
 char * Framework::mount(char * buffer, int len, int type, int seq){
 
-	//2*BUFSIZE+5 = Flags + False Flags + Data + CRC
 	char* frame =  new char[FRAME_MAXSIZE];
 
 	frame[0] = 0x7E; // Flag de início de quadro
@@ -83,7 +93,7 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 		}
 	}
 
-	//this->crc->gen_crc((unsigned char *)frame+1,j-2);
+   //this->crc->gen_crc((unsigned char *)frame+1,j-2);
 
 //	frame[j+1] = 0x7E; // Flag de fim de quadro
 //	frame[j+2] = 0; // Delimitador de char
@@ -96,9 +106,9 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 
 Framework::Type Framework::receive(){
 
-	cout << "Início da remoção do enquadramento..." << endl;
+	cout << "INFO: Início da remoção do enquadramento..." << endl;
 
-	char * frame = new char[1024];
+	char * frame = new char[FRAME_MAXSIZE];
 
 	bool return_fsm;
 	char frame_byte;
@@ -107,11 +117,11 @@ Framework::Type Framework::receive(){
 	bool end_flag  = false;
 	while(!end_flag){
 		if(k >= FRAME_MAXSIZE){
-			cout << "Quadro excedeu o limite máximo de bytes!: " << k << endl;
+			cout << "ERRO: Quadro excedeu o limite máximo de recepção: " << k << endl;
 			return Framework::none;
 		}
 		if(!(n = this->transceiver.read(frame+k,1, true)) > 0){
-			std::cout << "Erro ao ler byte do quadro:  " << n << std::endl;
+			cout << "ERRO: Erro ao ler byte do transceiver: " << n << std::endl;
 			return Framework::none;
 		}else{
 			k += n;
@@ -123,8 +133,9 @@ Framework::Type Framework::receive(){
 			}
 		}
 	}
+	cout << "INFO: Leitura do descritor do transceiver: " << this->transceiver.get_fd() << " com sucesso!" << endl;
 
-	frame[k] = 0;
+	frame[k] = 0; // Delimitador de char
 
 //	if(!(this->crc->check_crc((unsigned char*)frame+1,k-3))){
 //		std::cout << "CRC does not match!: " << buffer  << std::endl;
@@ -138,8 +149,11 @@ Framework::Type Framework::receive(){
 
 	Framework::Type r = get_type(this->buffer[0]);
 
-	if(!(n = this->aplicacao.write(this->buffer,strlen(this->buffer)))){
-		std::cout << "CRC does not match!: " << this->buffer  << std::endl;
+	if((n = this->aplicacao.write(this->buffer+1,strlen(this->buffer)-1))){
+		lseek(this->aplicacao.get_fd(),0L,0);
+		cout << "INFO: Escrita no descritor da aplicação: " << this->aplicacao.get_fd() << " com sucesso!" << endl;
+	}else{
+		cout << "ERRO: Falha na escrita no descritor do aplicação: " << this->aplicacao.get_fd() << endl;
 		return Framework::none;
 	}
 
@@ -152,22 +166,21 @@ bool Framework::handle(char byte){
 
 	case waiting:
 		if(byte == 0x7E){
-			std::cout << "Initial delimitation found!" << std::endl;
+			cout << "INFO: Flag de início de quadro encontrada!" << endl;
 			this->n_bytes = 0;
 			this->currentState = reception;
 		} else {
 			this->currentState = waiting;
 		}
 		break;
-
 	case reception:
 		if (this->n_bytes > this->max_bytes){
-			std::cout << "Overflow: " << this->n_bytes << " bytes" << std::endl;
 			this->currentState = waiting;
 		} else {
 			if(byte == 0x7E){
-				std::cout << "End delimitation found!" << std::endl;
+				std::cout << "INFO: Flag de fim de quadro encontrada!" << std::endl;
 				this->currentState = waiting;
+				this->buffer[n_bytes] = 0;
 				return true; // frame finished
 			} if (byte == 0x7D) {
 				this->currentState = escape;
@@ -181,18 +194,18 @@ bool Framework::handle(char byte){
 	case escape:
 		switch(byte){
 		case(0x5E):
-			std::cout << "INFO: 0x7E found in position: " << n_bytes << " of the data" << std::endl;
+			std::cout << "INFO: 0x7E encontrado na posição: " << n_bytes << " do dado" << std::endl;
     		this->buffer[n_bytes] = 0x7E;
     		this->n_bytes++;
 			this->currentState = reception;
 			break;
 		case(0x5D):
-			std::cout << "INFO: 0x7D found in position: " << n_bytes << " of the data" << std::endl;
+			std::cout << "INFO: 0x7D encontrado na posição: " << n_bytes << " do dado" << std::endl;
 			this->buffer[n_bytes] = 0x7D;
 			this->currentState = reception;
 			break;
 		case(0x7E):
-				std::cout << "End delimitation found!" << std::endl;
+				std::cout << "INFO: Flag de fim de quadro encontrada!" << std::endl;
 				this->currentState = waiting;
 				return true; // frame finished
 		default:
@@ -207,26 +220,22 @@ bool Framework::handle(char byte){
 
 char Framework::header(int type, int seq){
 
-	char control = 0x00;
+	char control;
 
 	if(type == 0 && seq == 0){ // Tipo Dado, Sequência 0;
-		control &= ~(1 << 2);
-		control &= ~(1 << 1);
-	}
-
-	if(type == 1 && seq == 0){ // Tipo ACK, Sequência 0;
-		control |= (1 << 2);
-		control &= ~(1 << 1);
+		control = '0';
 	}
 
 	if(type == 0 && seq == 1){ // Tipo Dado, Sequência 1;
-		control &= ~(1 << 2);
-		control |= (1 << 1);
+		control = '1';
+	}
+
+	if(type == 1 && seq == 0){ // Tipo ACK, Sequência 0;
+		control = '2';
 	}
 
 	if(type == 1 && seq == 1){ // Tipo ACK, Sequência 1;
-		control |= (1 << 2);
-		control |= (1 << 1);
+		control = '3';
 	}
 
 	return control;
@@ -235,20 +244,17 @@ char Framework::header(int type, int seq){
 
 Framework::Type Framework::get_type(char control){
 
-	bool bit0 = !!(control & (0 << 1));
-	bool bit1 = !!(control & (0 << 2));
-
 	switch(control){
-		case(0x20):
+		case('0'):
 			return Framework::data0;
 			break;
-		case(0x01):
+		case('1'):
 			return Framework::data1;
 			break;
-		case(0x02):
+		case('2'):
 			return Framework::ack0;
 			break;
-		case(0x03):
+		case('3'):
 			return Framework::ack1;
 			break;
 		default:

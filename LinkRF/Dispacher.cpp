@@ -16,8 +16,8 @@ Dispacher::~Dispacher() {}
 
 void Dispacher::handle(){
 
-//	int op = fcntl(this->aplicacao, F_GETFL);
-//	fcntl(this->aplicacao, F_SETFL, op | O_NONBLOCK);
+	int op = fcntl(this->transceiver, F_GETFL);
+	fcntl(this->transceiver, F_SETFL, op | O_NONBLOCK);
 
 //	struct timeval timeout;
 //	timeout.tv_sec = 5;
@@ -35,9 +35,9 @@ void Dispacher::handle(){
 
 		int n = 0;
 
-		cout << "Ha " << n << " descritores prontos" << endl;
-
 		if( !(n = select(aplicacao+1, &r, NULL, NULL, NULL)) == 0 ){
+
+			cout << "Há " << n << " descritores prontos" << endl;
 
 			// testa se fd1 está pronto para ser acessado
 			if (FD_ISSET(this->transceiver, &r)) {

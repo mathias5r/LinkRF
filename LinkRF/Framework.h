@@ -20,8 +20,8 @@
 #define PPPGOODFSCS16 0xf0b8
 
 #define BUFSIZE 1024
-#define FRAME_MAXSIZE 2*BUFSIZE+5
-#define FRAME_MINSIZE 6
+#define FRAME_MAXSIZE 2*BUFSIZE+5 // Flag (2 bytes) + CRC(2) + Type (1) + Payload[2*BUFSIZE(até 1024 false flags)]
+#define FRAME_MINSIZE 6			  // Flag (2 bytes) + CRC(2) + Type (1) + Payload(1)
 
 using namespace std;
 
