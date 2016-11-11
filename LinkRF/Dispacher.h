@@ -23,7 +23,7 @@ using namespace std;
 
 class Dispacher {
 public:
-	Dispacher(ARQ & a, int fd_transceiver, int fd_serial);
+	Dispacher(ARQ & a, int fd_transceiver, int fd_app);
 	Dispacher(const Dispacher& d);
 	void handle();
 	void handle_forever();

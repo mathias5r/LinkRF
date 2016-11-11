@@ -48,12 +48,13 @@ bool CRC::check_crc(unsigned char * buffer, int len){
 
 	uint16_t crc = pppfcs16(buffer,len);
 
-	uint8_t crc_low = (uint8_t)crc;
-	uint8_t crc_high = (uint8_t)(crc >> 8);
-
-	cout << "CRC recebido - CRC low: " << crc_low << ", CRC high: " << crc_high << endl;
+	cout << hex << (crc) << endl;
+	cout << hex << (crc & 0x00ff) << endl;
+	cout << hex << ((crc >> 8) & 0x00ff) << endl;
 
 	return (crc == PPPGOODFSCS16);
+
+
 }
 
 void CRC::gen_crc(unsigned char * buffer, int len){
@@ -61,14 +62,14 @@ void CRC::gen_crc(unsigned char * buffer, int len){
 	uint16_t crc = pppfcs16(buffer,len);
 
 	crc ^= 0xffff;
-	uint8_t crc_low = (uint8_t)crc;
-	std::cout << "INFO: Calculated low crc: " << crc_low << std::endl;
 
-	uint8_t crc_high = (uint8_t)(crc >> 8);
-	std::cout << "INFO: Calculated high crc: " << crc_high << std::endl;
+	cout << hex << (crc) << endl;
+	cout << hex << (crc & 0x00ff) << endl;
+	cout << hex << ((crc >> 8) & 0x00ff) << endl;
 
-	buffer[len] = (unsigned char)crc_high & 0xff;
-	buffer[len+1] = (unsigned char)crc_low & 0xff;
+	buffer[len] = (crc & 0x00ff);      /* least significant byte first */
+    buffer[len+1] = ((crc >> 8) & 0x00ff);
+
 }
 
 uint16_t CRC::pppfcs16(unsigned char * cp, int len){

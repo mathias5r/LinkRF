@@ -8,51 +8,19 @@
 
 Serial::Serial(const char * path, int rate) {
 
-	struct termios tio;
-
 	/* Open modem device for reading and writing and not as controlling tty */
 	this->tty_fd = open(path,O_RDWR|O_NOCTTY);
 	if (tty_fd < 0) throw -10;
+	config(this->tty_fd, rate);
 
-	/* Save current serial port settings */
-	tcgetattr(tty_fd, &tio);
+}
 
-	/* initialize all control characters
-	default values can be found in /usr/include/termios.h, and are given
-	in the comments, but we don't need them here */
-	tio.c_iflag = 0;
-	tio.c_oflag = 0;
-	tio.c_cflag = CS8|CREAD|CLOCAL;   // 8n1, see termios.h for more information
-	tio.c_lflag = 0;
-	tio.c_cc[0] = 3;
-	tio.c_cc[1] = 0x1c;
-	tio.c_cc[2] = 0x7f;
-	tio.c_cc[3] = 0x15;
-	tio.c_cc[4] = 4;
-	tio.c_cc[5] = 0;
-	tio.c_cc[6] = 0;
-	tio.c_cc[7] = 0;
-	tio.c_cc[8] = 0x11;
-	tio.c_cc[9] = 0x13;
-	tio.c_cc[10] = 0x1a;
-	tio.c_cc[11] = 0;
-	tio.c_cc[12] = 0x12;
-	tio.c_cc[13] = 0xf;
-	tio.c_cc[14] = 0x17;
-	tio.c_cc[15] = 016;
-	for (int i=16; i < 32; i++) tio.c_cc[i] = 0;
 
-	/* Set the baurate of the serial communication */
-	cfsetospeed(&tio,rate);
-	cfsetispeed(&tio,rate);
+Serial::Serial(int fd, int rate){
 
-	/* Restore the old port settings */
-	tcsetattr(tty_fd,TCSANOW,&tio);
+	this->tty_fd = fd;
+	config(this->tty_fd, rate);
 
-	long flag;
-	ioctl(tty_fd, F_GETFL, &flag);
-	flag |= O_NONBLOCK;
-	ioctl(tty_fd, F_SETFL, &flag);
 }
 
 Serial::~Serial() {
@@ -102,13 +70,60 @@ int Serial::read(char * buffer, int len, bool block){
 }
 
 char Serial::read_byte() {
-    char c;
-    read(&c, 1, false);
-    return c;
+	char c;
+	read(&c, 1, false);
+	return c;
 }
 
 int Serial::get_fd(){
 	return this->tty_fd;
+}
+
+void Serial::config(int fd, int rate){
+
+	struct termios tio;
+
+	/* Save current serial port settings */
+	tcgetattr(fd, &tio);
+
+	/* initialize all control characters
+		default values can be found in /usr/include/termios.h, and are given
+		in the comments, but we don't need them here */
+	tio.c_iflag = 0;
+	tio.c_oflag = 0;
+	tio.c_cflag = CS8|CREAD|CLOCAL;   // 8n1, see termios.h for more information
+	tio.c_lflag = 0;
+	tio.c_cc[0] = 3;
+	tio.c_cc[1] = 0x1c;
+	tio.c_cc[2] = 0x7f;
+	tio.c_cc[3] = 0x15;
+	tio.c_cc[4] = 4;
+	tio.c_cc[5] = 0;
+	tio.c_cc[6] = 0;
+	tio.c_cc[7] = 0;
+	tio.c_cc[8] = 0x11;
+	tio.c_cc[9] = 0x13;
+	tio.c_cc[10] = 0x1a;
+	tio.c_cc[11] = 0;
+	tio.c_cc[12] = 0x12;
+	tio.c_cc[13] = 0xf;
+	tio.c_cc[14] = 0x17;
+	tio.c_cc[15] = 016;
+	for (int i=16; i < 32; i++) tio.c_cc[i] = 0;
+
+	/* Set the baurate of the serial communication */
+	cfsetospeed(&tio,rate);
+	cfsetispeed(&tio,rate);
+
+	/* Restore the old port settings */
+	tcsetattr(fd,TCSANOW,&tio);
+
+	long flag;
+	ioctl(fd, F_GETFL, &flag);
+	flag |= O_NONBLOCK;
+	ioctl(fd, F_SETFL, &flag);
+
+
 }
 
 

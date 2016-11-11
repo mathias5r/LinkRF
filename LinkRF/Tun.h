@@ -1,4 +1,4 @@
-/*
+/* 
  * File:   Tun.h
  * Author: msobral
  *
@@ -15,7 +15,7 @@
 struct TunFrame {
     char buffer[MTU+4];
     int len;
-
+    
     TunFrame() : len(0) {}
     TunFrame(int fd);
     TunFrame(Frame * f);
@@ -38,9 +38,10 @@ public:
 private:
     int fd;
     char dev[IFNAMSIZ], ip[16], dstip[16];
-
+    
     void alloc();
     void setip();
 };
 
 #endif	/* TUN_H */
+

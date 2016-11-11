@@ -24,6 +24,8 @@ class Serial {
   // rate=taxa de bits (usar as constantes do termios, ex: B9600)
   Serial(const char * path, int rate);
 
+  Serial(int fd, int rate);
+
   ~Serial();
 
   // escreve até "size" bytes na porta serial, a partir a área de memória apontada
@@ -46,6 +48,10 @@ class Serial {
   char read_byte();
 
   int get_fd();
+
+private:
+
+  void config(int fd, int rate);
 };
 
 #endif

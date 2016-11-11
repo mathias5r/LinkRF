@@ -16,8 +16,8 @@ Frame::Frame(char * buffer, int bytes) {
 
 void Frame::copy(char * buffer) {
     buffer[0] = (type | (seq << 1)) & 0xff;
-    buffer[1] = proto & 0xff;
-    if (len) memcpy(buffer+2, payload, len);
+    buffer[1] = proto & 0xff;    
+    if (len) memcpy(buffer+2, payload, len);    
 }
 
 Frame & Frame::operator=(const Frame & outro) {
@@ -25,8 +25,8 @@ Frame & Frame::operator=(const Frame & outro) {
     seq = outro.seq;
     proto = outro.proto;
     len = outro.len;
-    if (len) memcpy(payload, outro.payload, len);
-    return *this;
+    if (len) memcpy(payload, outro.payload, len);    
+    return *this;    
 }
 
 void Frame::set_proto(unsigned short p) {
@@ -39,13 +39,13 @@ void Frame::set_proto(unsigned short p) {
            break;
        default:
            throw -1; // desconhecido !!!
-   }
+   }        
 }
 
 
 unsigned short Frame::get_proto() const {
     unsigned short p;
-
+    
    switch (proto) {
        case 1:
            p = 0x800; // IPv4
@@ -56,7 +56,7 @@ unsigned short Frame::get_proto() const {
        default:
            throw -1; // desconhecido !
    }
-
+   
    return p;
 }
 

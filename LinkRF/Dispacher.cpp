@@ -35,7 +35,7 @@ void Dispacher::handle(){
 
 		int n = 0;
 
-		if( !(n = select(aplicacao+1, &r, NULL, NULL, NULL)) == 0 ){
+		if( !(n = select(transceiver+1, &r, NULL, NULL, NULL)) == 0 ){
 
 			cout << "Há " << n << " descritores prontos" << endl;
 

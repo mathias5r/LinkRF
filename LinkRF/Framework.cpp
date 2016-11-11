@@ -93,7 +93,7 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 		}
 	}
 
-   //this->crc->gen_crc((unsigned char *)frame+1,j-2);
+    this->crc->gen_crc((unsigned char *)frame+2,j-2);
 
 //	frame[j+1] = 0x7E; // Flag de fim de quadro
 //	frame[j+2] = 0; // Delimitador de char
@@ -137,9 +137,27 @@ Framework::Type Framework::receive(){
 
 	frame[k] = 0; // Delimitador de char
 
-//	if(!(this->crc->check_crc((unsigned char*)frame+1,k-3))){
+//	unsigned char * crc_buffer = new unsigned char[FRAME_MAXSIZE-2];
+//
+//	int i = 0;
+//	while( frame[i+1] != '~' ){
+//		crc_buffer[i] = frame[i+1];
+//		i++;
+//	}
+//
+//	unsigned char * crc_buffer2 = new unsigned char[FRAME_MAXSIZE-2];
+//	memcpy(crc_buffer2,crc_buffer,i);
+//
+//	crc_buffer2[i-2] = 0;
+//	crc_buffer2[i-3] = 0xf0;
+//	crc_buffer2[1-4] = 0xb8;
+//	cout << crc_buffer2[i-3] << endl;
+//	cout << crc_buffer2[i-4] << endl;
+//
+//
+//	if(!(this->crc->check_crc(crc_buffer2,i-2))){
 //		std::cout << "CRC does not match!: " << buffer  << std::endl;
-//		return -1;
+//		return Framework::none;
 //	}
 
 	for(int i=0;!return_fsm; i++){

@@ -1,4 +1,4 @@
-/*
+/* 
  * File:   Frame.h
  * Author: msobral
  *
@@ -23,13 +23,13 @@ struct Frame {
     char payload[MTU];
     int len;
     int tx; // transmissoes
-
+    
     Frame() {}
     Frame(const Frame & outro) {*this = outro;}
     Frame &operator=(const Frame & outro);
     Frame (char * buffer, int bytes);
     void copy(char * buffer);
-    int total_length() const { return len+2;}
+    int total_length() const { return len+2;}    
     void set_proto(unsigned short p);
     unsigned short get_proto() const;
     void copy_payload(char * buffer) const;
@@ -38,3 +38,4 @@ struct Frame {
 ostream & operator<<(ostream & out, const Frame * f);
 
 #endif	/* FRAME_H */
+
