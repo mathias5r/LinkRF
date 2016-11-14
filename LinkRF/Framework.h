@@ -29,10 +29,10 @@ class Framework{
 
 public:
 	enum Type{ data0,ack0,data1,ack1,none };
-	Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max);
+	Framework(Serial & tr, int bytes_min, int bytes_max);
 	virtual ~Framework(){};
-	int send(int type, int seq);
-	Type receive();
+	int send(char * buffer, int len, int type, int seq);
+	Type receive(char * buffer);
 	char * mount(char* data, int len, int type, int seq);
 
 	// getters
@@ -40,18 +40,20 @@ public:
 	int get_min_bytes() { return min_bytes; }
 	char * get_buffer() { return buffer; }
 	int get_bytes() { return n_bytes; }
+	int get_len(){ return len; };
 
 	// setters
 	void set_buffer(char * buff) { buffer = buff; }
 	void set_min_bytes(int bytes_min) { min_bytes = bytes_min;}
 	void set_max_bytes(int bytes_max) { max_bytes = bytes_max;}
+	void set_len( int len ) { this->len = len; }
 
 private:
 
 	CRC * crc;
 	Serial & transceiver;
-	Serial & aplicacao;
 	int min_bytes, max_bytes; // max and min number of bytes allowed for each frame
+	int len;
 	char * buffer;
 	// bytes recebidos pela MEF até o momento
 	int n_bytes;

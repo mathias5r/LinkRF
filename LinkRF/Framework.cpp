@@ -10,7 +10,7 @@
 #include "Framework.h"
 #include <bitset>
 
-Framework::Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max): transceiver(tr), aplicacao(app) {
+Framework::Framework(Serial & tr, int bytes_min, int bytes_max): transceiver(tr){
 
 	this->min_bytes = bytes_min;
 	this->max_bytes = bytes_max;
@@ -19,46 +19,29 @@ Framework::Framework(Serial & tr, Serial & app, int bytes_min, int bytes_max): t
 	this->currentState = waiting;
 	CRC crc;
 	this->crc = &crc;
+	this->len = 0;
 
 }
 
-int Framework::send(int type, int seq){
+int Framework::send(char * buffer, int len, int type, int seq){
 
 	cout << "INFO: Início do enquadramento..." << endl;
 
-	char *buffer_payload = new char[BUFSIZE]; // Pode receber um dado de 1024 bytes da aplicação
-
-	int n;
-
-	if(type != 1){ // Se for payload recebe da aplicação
-		off_t fsize = lseek(this->aplicacao.get_fd(),0,SEEK_END);
-		lseek(this->aplicacao.get_fd(),0L,0);
-		if((n = (this->aplicacao.read(buffer_payload,fsize,true))) > 0){
-			cout << "INFO: Leitura do descritor da aplicação: " << this->aplicacao.get_fd() << " com sucesso!" << endl;
-		}else{
-			cout << "ERRO: Falha na leitura do descritor da aplicação: " << this->aplicacao.get_fd() << endl;
-			return -1;
-		}
-	}else{ 									// Se não é ACK
-		*buffer_payload = 'a'; //Byte de enchimento
-		 n = this->min_bytes;
-	}
-
 	char* frame;
 
-	if (n >= this->min_bytes && n <= this->max_bytes) {
-		frame = mount(buffer_payload,n,type, seq);
+	if (len >= this->min_bytes && len <= this->max_bytes) {
+		frame = mount(buffer,len,type, seq);
 		cout << "Quadro: " << frame << endl;
 		int k;
-		if((k = transceiver.write(frame, strlen(frame)) > 0)){
-			lseek(this->transceiver.get_fd(),0L,0);
+		if((k = transceiver.write(frame, this->len) > 0)){
+			len = 0;
 			cout << "INFO: Escrita no descritor do transceiver: " << this->transceiver.get_fd() << " com sucesso!" << endl;
 		}else{
 			cout << "ERRO: Falha na escrita no descritor do transceiver: " << this->transceiver.get_fd() << endl;
 			return -1;
 		}
 	} else {
-		cout << "ERRO: Quadro excedeu o limite máximo de envio: " << n << endl;
+		cout << "ERRO: Quadro excedeu o limite máximo de envio: " << len << endl;
 		return -1;
 	}
 
@@ -66,6 +49,8 @@ int Framework::send(int type, int seq){
 }
 
 char * Framework::mount(char * buffer, int len, int type, int seq){
+
+	this->len = 0;
 
 	char* frame =  new char[FRAME_MAXSIZE];
 
@@ -93,7 +78,7 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 		}
 	}
 
-    this->crc->gen_crc((unsigned char *)frame+2,j-2);
+//    this->crc->gen_crc((unsigned char *)frame+2,j-2);
 
 //	frame[j+1] = 0x7E; // Flag de fim de quadro
 //	frame[j+2] = 0; // Delimitador de char
@@ -101,12 +86,16 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 	frame[j] = 0x7E; // Flag de fim de quadro
 	frame[j+1] = 0; // Delimitador de char
 
+	this->len = j+1;
+
 	return frame;
 }
 
-Framework::Type Framework::receive(){
+Framework::Type Framework::receive(char * buffer){
 
 	cout << "INFO: Início da remoção do enquadramento..." << endl;
+
+	this->len = 0;
 
 	char * frame = new char[FRAME_MAXSIZE];
 
@@ -120,7 +109,7 @@ Framework::Type Framework::receive(){
 			cout << "ERRO: Quadro excedeu o limite máximo de recepção: " << k << endl;
 			return Framework::none;
 		}
-		if(!(n = this->transceiver.read(frame+k,1, true)) > 0){
+		if(!(n = this->transceiver.read(frame+k,1,true)) > 0){
 			cout << "ERRO: Erro ao ler byte do transceiver: " << n << std::endl;
 			return Framework::none;
 		}else{
@@ -165,15 +154,12 @@ Framework::Type Framework::receive(){
 		return_fsm = this->handle(frame_byte);
 	}
 
-	Framework::Type r = get_type(this->buffer[0]);
+	this->len = k;
 
-	if((n = this->aplicacao.write(this->buffer+1,strlen(this->buffer)-1))){
-		lseek(this->aplicacao.get_fd(),0L,0);
-		cout << "INFO: Escrita no descritor da aplicação: " << this->aplicacao.get_fd() << " com sucesso!" << endl;
-	}else{
-		cout << "ERRO: Falha na escrita no descritor do aplicação: " << this->aplicacao.get_fd() << endl;
-		return Framework::none;
-	}
+	Framework::Type r = get_type(this->buffer[0]);
+	cout << "BUFFER[0]: " << this->buffer[0] << endl;
+
+	memcpy(buffer, this->buffer, this->len);
 
 	return r;
 }

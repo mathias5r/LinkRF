@@ -6,16 +6,19 @@
  */
 
 #include "Framework.h"
+#include "Tun.h"
+#include "Frame.h"
+#include <cstdlib>
+#include <ctime>
 
 #ifndef ARQ_H_
 #define ARQ_H_
 
 using namespace std;
 
-
 class ARQ {
 public:
-	ARQ(Framework & f);
+	ARQ(Framework & f, Tun & tun);
 	virtual ~ARQ(){};
 	bool send(char * buffer, int len);
 	bool test_data(Framework::Type);
@@ -29,12 +32,14 @@ public:
 	bool get_canSend(){ return this->canSend; };
 	bool get_received(){ return this->received; };
 	bool get_timeout(){ return this->timeout; };
-	bool get_backoff(){ return this->backoff; };
+	bool get_backoff(){ return this->backoff_value; };
 
 	bool handle();
 
 private:
 	Framework & framework;
+	Tun & tun;
+	Frame current_frame;
 	enum State{
 		A,B,C,D
 	};
@@ -42,6 +47,7 @@ private:
 	int sequenceN;
 	int sequenceM;
 	bool canSend, received, timeout, backoff;
+	int backoff_value;
 };
 
 #endif /* ARQ_H_ */

@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <fcntl.h>
+#include <pthread.h>
 
 #include "Tun.h"
 #include "ARQ.h"
@@ -31,7 +32,7 @@ public:
 private:
 	ARQ & arq;
 	int transceiver, aplicacao;
-
+	clock_t begin;
 };
 
 #endif /* DISPACHER_H_ */

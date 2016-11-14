@@ -16,13 +16,13 @@ int main(){
 	//cout << "--------Configuração---------------- " << endl
 	//cout << " Digite a interface serial:
 
-	Tun iface("ptp0" , "10.0.0.1", "10.0.0.2");
+	Tun iface("ptp0" , "192.168.1.1", "192.168.1.2");
 	iface.start();
-	Serial t("/home/mathias/Workspace_Eclipse/LinkRF/LinkRF/serial.txt",B9600);
-	Serial a(iface.get(),B9600); // Tun
-	Framework f(t,a,1,FRAME_MAXSIZE);
-	ARQ arq(f);
-	Dispacher d(arq,t.get_fd(),a.get_fd());
+	Serial t("/dev/ttyUSB0",B9600);
+	//Serial t("/dev/ttyUSB0",B9600);
+	Framework f(t,1,FRAME_MAXSIZE);
+	ARQ arq(f, iface);
+	Dispacher d(arq,t.get_fd(),iface.get());
 
 	d.handle();
 

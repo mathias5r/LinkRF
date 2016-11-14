@@ -7,7 +7,7 @@
 
 #include "ARQ.h"
 
-ARQ::ARQ(Framework & f): framework(f){
+ARQ::ARQ(Framework & f, Tun & tun): framework(f), tun(tun) {
 
 	this->currentstate = A;
 	this->sequenceN = 0;
@@ -16,7 +16,7 @@ ARQ::ARQ(Framework & f): framework(f){
 	this->received = false;
 	this->backoff = false;
 	this->timeout = false;
-
+	this->backoff_value = 0;
 }
 
 bool ARQ::handle(){
@@ -28,17 +28,26 @@ bool ARQ::handle(){
 		cout << "INFO: Estado ARQ: A " << endl;
 
 		if(this->canSend){ 								// Recebeu um dado da aplicação
-			if((this->framework.send(0,this->sequenceN)) > 0){
+			char * from_app = new char[BUFSIZE];
+			Frame * frame;
+			frame = this->tun.get_frame();
+			frame->copy_payload(from_app);
+			int frame_size = frame->total_length();
+			this->current_frame = *frame;
+			if((((this->framework.send(from_app,frame_size,0,this->sequenceN))))){
 				cout << "INFO: Dado com sequência " << this->sequenceN << " Enviado com sucesso!" << endl;
 				this->currentstate = B;
 			}else{
 				cout << "ERRO: Erro ao enviar dado com sequência " << this->sequenceN << endl;
 				return true;
 			}
+
 		}else if(this->received){						// Recebeu um quadro do transceiver
 			Framework::Type r;
-			if((r = this->framework.receive()) != Framework::none){
+			char * from_serial = new char[FRAME_MAXSIZE];
+			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
+					this->tun.write(from_serial, this->framework.get_len());
 					this->currentstate = A;
 				}else{
 					cout << "ERRO: Tipo de dado não coerente!" << endl;
@@ -48,7 +57,7 @@ bool ARQ::handle(){
 				return true;
 			}
 		}else{
-			cout << "ERRO: Operação do estado A inválido" << endl;
+			cout << "AVISO: Operação do estado A inválido" << endl;
 			return true;
 		}
 
@@ -60,11 +69,18 @@ bool ARQ::handle(){
 
 		if(this->received){								// Recebeu um quadro do transceiver
 			Framework::Type r;
-			if((r = this->framework.receive()) != Framework::none){
+			char * from_serial = new char[FRAME_MAXSIZE];
+			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
+					this->tun.write(from_serial, this->framework.get_len());
 					this->currentstate = B;
 				}else if(test_ack(r)){
 					this->currentstate = C;
+					srand((unsigned)time(0)); //para gerar números aleatórios reais.
+					int maior = 5;
+					int menor = 0;
+					int aleatorio = rand()%(maior-menor+1) + menor;
+					this->backoff_value = aleatorio;
 				}else{
 					cout << "ERRO: Tipo de dado ou confirmação não coerente!" << endl;
 					return true;
@@ -72,8 +88,13 @@ bool ARQ::handle(){
 			}
 		}else if(this->timeout){
 			this->currentstate = D;
+			srand((unsigned)time(0));
+			int maior = 5;
+			int menor = 0;
+			int aleatorio = rand()%(maior-menor+1) + menor;
+			this->backoff_value = aleatorio;
 		}else{
-			cout << "ERRO: Operação do estado B inválido" << endl;
+			cout << "AVISO: Operação do estado B inválido" << endl;
 			return true;
 		}
 
@@ -87,8 +108,10 @@ bool ARQ::handle(){
 			this->currentstate = A;
 		}else if(this->received){
 			Framework::Type r;
-			if((r = this->framework.receive()) != Framework::none){
+			char * from_serial = new char[FRAME_MAXSIZE];
+			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
+					this->tun.write(from_serial, this->framework.get_len());
 					this->currentstate = C;
 				}else{
 					cout << "ERRO: Tipo de dado não coerente!" << endl;
@@ -96,7 +119,7 @@ bool ARQ::handle(){
 				}
 			}
 		}else{
-			cout << "ERRO: Operação do estado C inválido" << endl;
+			cout << "AVISO: Operação do estado C inválido" << endl;
 			return true;
 		}
 
@@ -107,21 +130,41 @@ bool ARQ::handle(){
 		cout << "INFO: Estado ARQ: D " << endl;
 
 		if(this->backoff){
-			if((this->framework.send(0,sequenceN)) > 0){
-				cout << "INFO: Dado com sequência " << this->sequenceN << "Enviado com sucesso!" << endl;
+
+			//retransmitir quadro
+
+			//--------------------------------------------------------------------
+
+			char * from_app = new char[BUFSIZE];
+			this->current_frame.copy_payload(from_app);
+			int frame_size = this->current_frame.total_length();
+			if((((this->framework.send(from_app,frame_size,0,this->sequenceN))))){
+				cout << "INFO: Dado com sequência " << this->sequenceN << " Enviado com sucesso!" << endl;
 				this->currentstate = B;
 			}else{
-				cout << "ERRO: Erro ao enviar quadro de sequencia: " << this->sequenceN << endl;
+				cout << "ERRO: Erro ao enviar dado com sequência " << this->sequenceN << endl;
 				return true;
 			}
+
+			//--------------------------------------------------------------------
+
+			this->currentstate = B;
+
 		}else if(this->received){
-			Framework::Type r = this->framework.receive();
-			if(test_data(r)){
-				this->currentstate = D;
-			}else{
-				cout << "ERRO: Tipo de dado não coerente!" << endl;
-				return true;
+			Framework::Type r;
+			char * from_serial = new char[FRAME_MAXSIZE];
+			if((r = this->framework.receive(from_serial)) != Framework::none){
+				if(test_data(r)){
+					this->tun.write(from_serial, this->framework.get_len());
+					this->currentstate = D;
+				}else{
+					cout << "ERRO: Tipo de dado não coerente!" << endl;
+					return true;
+				}
 			}
+		}else{
+			cout << "AVISO: Operação do estado D inválido" << endl;
+			return true;
 		}
 
 		break;
@@ -135,7 +178,7 @@ bool ARQ::test_data(Framework::Type r){
 
 	if(r == Framework::data0){
 		this->sequenceM = 0;
-		if((this->framework.send(1,this->sequenceM) > 0)){
+		if((this->framework.send((char *)"a",1,1,this->sequenceM) > 0)){
 			cout << "INFO: ACK com sequência " << this->sequenceM << " Enviado com sucesso!" << endl;
 			return true;
 		}else{
@@ -144,7 +187,7 @@ bool ARQ::test_data(Framework::Type r){
 		}
 	}else if(r == Framework::data1){
 		this->sequenceM = 1;
-		if((this->framework.send(1,this->sequenceM) > 0)){
+		if((this->framework.send((char *)"a",1,1,this->sequenceM) > 0)){
 			cout << "INFO: ACK com sequência " << this->sequenceM << "Enviado com sucesso!" << endl;
 			return true;
 		}else{
@@ -159,14 +202,15 @@ bool ARQ::test_ack(Framework::Type r){
 
 	if(r == Framework::ack0){
 		if(sequenceN == 0){
-			sequenceN = 1;
 			cout << "INFO: ACK recebido de sequência: " << this->sequenceN << endl;
+			sequenceN = 1;
 			return true;
 		}else{
 			cout << "ERRO: Erro ao enviar ACK de sequência: " << this->sequenceM << endl;
 		}
 	}else if(r == Framework::ack1){
 		if(sequenceN == 1){
+			cout << "INFO: ACK recebido de sequência: " << this->sequenceN << endl;
 			sequenceN = 0;
 			return true;
 		}

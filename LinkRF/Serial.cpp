@@ -33,7 +33,6 @@ int Serial::write(char * buffer, int len){
 		int bytes = len - pos;
 		if (bytes > MAX_SERIAL_BYTES) bytes = MAX_SERIAL_BYTES;
 		int sent = ::write(tty_fd, buffer+pos, bytes);
-		sleep(10);
 		pos += sent;
 		::tcdrain(tty_fd);
 	}
@@ -46,26 +45,14 @@ int Serial::read(char * buffer, int len){
 }
 
 int Serial::read(char * buffer, int len, bool block){
-
-	int n = 0;
-
 	if (block) {
 		fd_set r;
 
 		FD_ZERO(&r);
 		FD_SET(tty_fd, &r);
 		select (tty_fd+1, &r, NULL, NULL, NULL);
-
-		int pos = 0;
-		while(pos  < len){
-			int bytes = len - pos;
-			int receive = ::read(tty_fd, buffer+pos, bytes);
-			pos += receive;
-		}
-		n = pos;
-	}else{
-		n = ::read(tty_fd, buffer, len);
 	}
+	int n = ::read(tty_fd, buffer, len);
 	return n;
 }
 

@@ -1,4 +1,5 @@
-ARQ.d: ../ARQ.cpp ../ARQ.h ../Framework.h ../Serial.h ../CRC.h
+ARQ.d: ../ARQ.cpp ../ARQ.h ../Framework.h ../Serial.h ../CRC.h ../Tun.h \
+ ../Definitions.h ../Frame.h
 
 ../ARQ.h:
 
@@ -7,3 +8,9 @@ ARQ.d: ../ARQ.cpp ../ARQ.h ../Framework.h ../Serial.h ../CRC.h
 ../Serial.h:
 
 ../CRC.h:
+
+../Tun.h:
+
+../Definitions.h:
+
+../Frame.h:
