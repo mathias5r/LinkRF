@@ -40,20 +40,23 @@ public:
 	int get_min_bytes() { return min_bytes; }
 	char * get_buffer() { return buffer; }
 	int get_bytes() { return n_bytes; }
-	int get_len(){ return len; };
+	int get_len_send(){ return len_send; };
+	int get_len_receive(){ return len_receive; };
 
 	// setters
 	void set_buffer(char * buff) { buffer = buff; }
 	void set_min_bytes(int bytes_min) { min_bytes = bytes_min;}
 	void set_max_bytes(int bytes_max) { max_bytes = bytes_max;}
-	void set_len( int len ) { this->len = len; }
+	void set_len_send( int len ) { this->len_send = len; }
+	void set_len_receive( int len ) { this->len_receive = len; }
 
 private:
 
 	CRC * crc;
 	Serial & transceiver;
 	int min_bytes, max_bytes; // max and min number of bytes allowed for each frame
-	int len;
+	int len_send;
+	int len_receive;
 	char * buffer;
 	// bytes recebidos pela MEF até o momento
 	int n_bytes;

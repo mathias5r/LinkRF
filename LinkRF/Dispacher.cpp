@@ -82,7 +82,6 @@ void Dispacher::handle(){
 				this->arq.set_backoff(true);
 				this->arq.handle();
 				this->arq.set_backoff(false);
-
 			}
 		}
 	}

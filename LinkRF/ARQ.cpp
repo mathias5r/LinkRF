@@ -52,9 +52,7 @@ bool ARQ::handle(){
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
-					this->tun.write(from_serial, this->framework.get_len());
-//					cout << "Ping: " << this->tun.get_frame()->total_length() << endl;
-//					cout << "Ping: " << this->tun.get_frame()->seq << endl;
+					this->tun.write(from_serial, this->framework.get_len_receive());
 					this->currentstate = A;
 				}else{
 					cout << "ERRO: Tipo de dado não coerente: A!" << endl;
@@ -81,11 +79,7 @@ bool ARQ::handle(){
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
-					this->tun.write(from_serial, this->framework.get_len());
-//					Frame * ping = this->tun.get_frame();
-//					cout << "Ping: " << ping->total_length() << endl;
-//					cout << "Ping: " << ping->seq << endl;
-//					delete ping;
+					this->tun.write(from_serial, this->framework.get_len_receive());
 					this->currentstate = B;
 				}else if(test_ack(r)){
 					srand((unsigned)time(0)); //para gerar números aleatórios reais.
@@ -128,11 +122,7 @@ bool ARQ::handle(){
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
-					this->tun.write(from_serial, this->framework.get_len());
-//					Frame * ping = this->tun.get_frame();
-//					cout << "Ping: " << ping->total_length() << endl;
-//					cout << "Ping: " << ping->seq << endl;
-//					delete ping;
+					this->tun.write(from_serial, this->framework.get_len_receive());
 					this->currentstate = C;
 				}else{
 					cout << "ERRO: Tipo de dado não coerente: C!" << endl;
@@ -175,11 +165,7 @@ bool ARQ::handle(){
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
-					this->tun.write(from_serial, this->framework.get_len());
-//					Frame * ping = this->tun.get_frame();
-//					cout << "Ping: " << ping->total_length() << endl;
-//					cout << "Ping: " << ping->seq << endl;
-//					delete ping;
+					this->tun.write(from_serial, this->framework.get_len_receive());
 					this->currentstate = D;
 				}else if(test_ack(r)){
 					srand((unsigned)time(0)); //para gerar números aleatórios reais.

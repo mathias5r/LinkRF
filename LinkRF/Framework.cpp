@@ -19,8 +19,8 @@ Framework::Framework(Serial & tr, int bytes_min, int bytes_max): transceiver(tr)
 	this->currentState = waiting;
 	CRC crc;
 	this->crc = &crc;
-	this->len = 0;
-
+	this->len_send = 0;
+	this->len_receive = 0;
 }
 
 int Framework::send(char * buffer, int len, int type, int seq){
@@ -33,8 +33,8 @@ int Framework::send(char * buffer, int len, int type, int seq){
 		frame = mount(buffer,len,type, seq);
 		cout << "Quadro: " << frame << endl;
 		int k;
-		if((k = transceiver.write(frame, this->len) > 0)){
-			len = 0;
+		if((k = transceiver.write(frame, this->len_send) > 0)){
+			len_send = 0;
 			cout << "INFO: Escrita no descritor do transceiver: " << this->transceiver.get_fd() << " com sucesso!" << endl;
 		}else{
 			cout << "ERRO: Falha na escrita no descritor do transceiver: " << this->transceiver.get_fd() << endl;
@@ -51,7 +51,7 @@ int Framework::send(char * buffer, int len, int type, int seq){
 
 char * Framework::mount(char * buffer, int len, int type, int seq){
 
-	this->len = 0;
+	this->len_send = 0;
 
 	char* frame =  new char[FRAME_MAXSIZE];
 
@@ -84,7 +84,7 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 	frame[j+2] = 0x7E; // Flag de fim de quadro
 	frame[j+3] = 0; // Delimitador de char
 
-	this->len = j+3;
+	this->len_send = j+3;
 	return frame;
 }
 
@@ -92,11 +92,11 @@ Framework::Type Framework::receive(char * buffer){
 
 	cout << "INFO: Início da remoção do enquadramento..." << endl;
 
-	this->len = 0;
+	this->len_receive = 0;
 
 	char * frame = new char[FRAME_MAXSIZE];
 
-	bool return_fsm;
+	bool return_fsm = false;
 	char frame_byte;
 	int n = 0, k = 0, v = 0;
 
@@ -136,12 +136,12 @@ Framework::Type Framework::receive(char * buffer){
 		return_fsm = this->handle(frame_byte);
 	}
 
-	this->len = k;
+	this->len_receive = k-5;
 
 	Framework::Type r = get_type(this->buffer[0]);
 	cout << "BUFFER[0]: " << this->buffer[0] << endl;
 
-	memcpy(buffer, this->buffer, this->len);
+	memcpy(buffer, this->buffer+1, this->len_receive);
 
 	delete crc_buffer;
 	delete frame;

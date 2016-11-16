@@ -15,9 +15,11 @@ Frame::Frame(char * buffer, int bytes) {
 }
 
 void Frame::copy(char * buffer) {
-    buffer[0] = (type | (seq << 1)) & 0xff;
-    buffer[1] = proto & 0xff;    
-    if (len) memcpy(buffer+2, payload, len);    
+	buffer[0] = 0;
+	buffer[1] = 0;
+    buffer[2] = 0x08;
+    buffer[3] = 0x00;
+    if (len) memcpy(buffer+4, payload, len+2);
 }
 
 Frame & Frame::operator=(const Frame & outro) {
