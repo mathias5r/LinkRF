@@ -32,7 +32,7 @@ public:
 private:
 	ARQ & arq;
 	int transceiver, aplicacao;
-	clock_t begin;
+	int backoff_control;
 };
 
 #endif /* DISPACHER_H_ */

@@ -27,7 +27,7 @@ int Framework::send(char * buffer, int len, int type, int seq){
 
 	cout << "INFO: Início do enquadramento..." << endl;
 
-	char* frame;
+	char* frame = new char[FRAME_MAXSIZE];
 
 	if (len >= this->min_bytes && len <= this->max_bytes) {
 		frame = mount(buffer,len,type, seq);
@@ -45,6 +45,7 @@ int Framework::send(char * buffer, int len, int type, int seq){
 		return -1;
 	}
 
+	delete frame;
 	return 1;
 }
 
@@ -78,16 +79,12 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 		}
 	}
 
-//    this->crc->gen_crc((unsigned char *)frame+2,j-2);
+	this->crc->gen_crc(frame+2,j-2);
 
-//	frame[j+1] = 0x7E; // Flag de fim de quadro
-//	frame[j+2] = 0; // Delimitador de char
+	frame[j+2] = 0x7E; // Flag de fim de quadro
+	frame[j+3] = 0; // Delimitador de char
 
-	frame[j] = 0x7E; // Flag de fim de quadro
-	frame[j+1] = 0; // Delimitador de char
-
-	this->len = j+1;
-
+	this->len = j+3;
 	return frame;
 }
 
@@ -124,30 +121,15 @@ Framework::Type Framework::receive(char * buffer){
 	}
 	cout << "INFO: Leitura do descritor do transceiver: " << this->transceiver.get_fd() << " com sucesso!" << endl;
 
-	frame[k] = 0; // Delimitador de char
+	frame[k] = 0;
 
-//	unsigned char * crc_buffer = new unsigned char[FRAME_MAXSIZE-2];
-//
-//	int i = 0;
-//	while( frame[i+1] != '~' ){
-//		crc_buffer[i] = frame[i+1];
-//		i++;
-//	}
-//
-//	unsigned char * crc_buffer2 = new unsigned char[FRAME_MAXSIZE-2];
-//	memcpy(crc_buffer2,crc_buffer,i);
-//
-//	crc_buffer2[i-2] = 0;
-//	crc_buffer2[i-3] = 0xf0;
-//	crc_buffer2[1-4] = 0xb8;
-//	cout << crc_buffer2[i-3] << endl;
-//	cout << crc_buffer2[i-4] << endl;
-//
-//
-//	if(!(this->crc->check_crc(crc_buffer2,i-2))){
-//		std::cout << "CRC does not match!: " << buffer  << std::endl;
-//		return Framework::none;
-//	}
+	char * crc_buffer = new char [FRAME_MAXSIZE];
+	memcpy(crc_buffer,frame+2,k-3);
+
+	if(!(this->crc->check_crc(crc_buffer,k-3))){
+		std::cout << "CRC does not match!: " << buffer  << std::endl;
+		return Framework::none;
+	}
 
 	for(int i=0;!return_fsm; i++){
 		frame_byte = frame[i];
@@ -161,6 +143,8 @@ Framework::Type Framework::receive(char * buffer){
 
 	memcpy(buffer, this->buffer, this->len);
 
+	delete crc_buffer;
+	delete frame;
 	return r;
 }
 

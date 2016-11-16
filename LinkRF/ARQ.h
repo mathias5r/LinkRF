@@ -28,11 +28,13 @@ public:
 	void set_received(bool state){ this->received = state; };
 	void set_timeout(bool state){ this->timeout = state; };
 	void set_backoff(bool state){ this->backoff = state; };
+	void set_enable(bool state){ this->enable = state; };
 
 	bool get_canSend(){ return this->canSend; };
 	bool get_received(){ return this->received; };
 	bool get_timeout(){ return this->timeout; };
-	bool get_backoff(){ return this->backoff_value; };
+	int get_backoff(){ return this->backoff_value; };
+	int get_enable(){ return this->enable; };
 
 	bool handle();
 
@@ -46,7 +48,7 @@ private:
 	State currentstate;
 	int sequenceN;
 	int sequenceM;
-	bool canSend, received, timeout, backoff;
+	bool canSend, received, timeout, backoff, enable;
 	int backoff_value;
 };
 

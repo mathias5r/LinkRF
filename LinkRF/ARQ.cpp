@@ -16,7 +16,12 @@ ARQ::ARQ(Framework & f, Tun & tun): framework(f), tun(tun) {
 	this->received = false;
 	this->backoff = false;
 	this->timeout = false;
-	this->backoff_value = 0;
+	srand((unsigned)time(0)); //para gerar números aleatórios reais.
+	int maior = 30;
+	int menor = 20;
+	int aleatorio = rand()%(maior-menor+1) + menor;
+	this->backoff_value = aleatorio;
+	this->enable = false;
 }
 
 bool ARQ::handle(){
@@ -31,7 +36,7 @@ bool ARQ::handle(){
 			char * from_app = new char[BUFSIZE];
 			Frame * frame;
 			frame = this->tun.get_frame();
-			frame->copy_payload(from_app);
+			frame->copy(from_app);
 			int frame_size = frame->total_length();
 			this->current_frame = *frame;
 			if((((this->framework.send(from_app,frame_size,0,this->sequenceN))))){
@@ -41,21 +46,24 @@ bool ARQ::handle(){
 				cout << "ERRO: Erro ao enviar dado com sequência " << this->sequenceN << endl;
 				return true;
 			}
-
+			delete from_app;
 		}else if(this->received){						// Recebeu um quadro do transceiver
 			Framework::Type r;
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
 					this->tun.write(from_serial, this->framework.get_len());
+//					cout << "Ping: " << this->tun.get_frame()->total_length() << endl;
+//					cout << "Ping: " << this->tun.get_frame()->seq << endl;
 					this->currentstate = A;
 				}else{
-					cout << "ERRO: Tipo de dado não coerente!" << endl;
+					cout << "ERRO: Tipo de dado não coerente: A!" << endl;
 					return true;
 				}
 			}else{
 				return true;
 			}
+			delete from_serial;
 		}else{
 			cout << "AVISO: Operação do estado A inválido" << endl;
 			return true;
@@ -66,6 +74,7 @@ bool ARQ::handle(){
 	case B:
 
 		cout << "INFO: Estado ARQ: B " << endl;
+		this->enable = false;
 
 		if(this->received){								// Recebeu um quadro do transceiver
 			Framework::Type r;
@@ -73,26 +82,33 @@ bool ARQ::handle(){
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
 					this->tun.write(from_serial, this->framework.get_len());
+//					Frame * ping = this->tun.get_frame();
+//					cout << "Ping: " << ping->total_length() << endl;
+//					cout << "Ping: " << ping->seq << endl;
+//					delete ping;
 					this->currentstate = B;
 				}else if(test_ack(r)){
-					this->currentstate = C;
 					srand((unsigned)time(0)); //para gerar números aleatórios reais.
-					int maior = 5;
-					int menor = 0;
+					int maior = 30;
+					int menor = 20;
 					int aleatorio = rand()%(maior-menor+1) + menor;
+					this->enable = true;
 					this->backoff_value = aleatorio;
+					this->currentstate = C;
 				}else{
-					cout << "ERRO: Tipo de dado ou confirmação não coerente!" << endl;
+					cout << "ERRO: Tipo de dado ou confirmação não coerente: B!" << endl;
 					return true;
 				}
 			}
+			delete from_serial;
 		}else if(this->timeout){
-			this->currentstate = D;
-			srand((unsigned)time(0));
-			int maior = 5;
-			int menor = 0;
+			srand((unsigned)time(0)); //para gerar números aleatórios reais.
+			int maior = 30;
+			int menor = 20;
 			int aleatorio = rand()%(maior-menor+1) + menor;
+			this->enable = true;
 			this->backoff_value = aleatorio;
+			this->currentstate = D;
 		}else{
 			cout << "AVISO: Operação do estado B inválido" << endl;
 			return true;
@@ -105,6 +121,7 @@ bool ARQ::handle(){
 		cout << "INFO: Estado ARQ: C " << endl;
 
 		if(this->backoff){
+			this->enable = false;
 			this->currentstate = A;
 		}else if(this->received){
 			Framework::Type r;
@@ -112,12 +129,17 @@ bool ARQ::handle(){
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
 					this->tun.write(from_serial, this->framework.get_len());
+//					Frame * ping = this->tun.get_frame();
+//					cout << "Ping: " << ping->total_length() << endl;
+//					cout << "Ping: " << ping->seq << endl;
+//					delete ping;
 					this->currentstate = C;
 				}else{
-					cout << "ERRO: Tipo de dado não coerente!" << endl;
+					cout << "ERRO: Tipo de dado não coerente: C!" << endl;
 					return true;
 				}
 			}
+			delete from_serial;
 		}else{
 			cout << "AVISO: Operação do estado C inválido" << endl;
 			return true;
@@ -131,12 +153,12 @@ bool ARQ::handle(){
 
 		if(this->backoff){
 
-			//retransmitir quadro
+			cout << "INFO: Retransmissão" << endl;
 
 			//--------------------------------------------------------------------
 
 			char * from_app = new char[BUFSIZE];
-			this->current_frame.copy_payload(from_app);
+			this->current_frame.copy(from_app);
 			int frame_size = this->current_frame.total_length();
 			if((((this->framework.send(from_app,frame_size,0,this->sequenceN))))){
 				cout << "INFO: Dado com sequência " << this->sequenceN << " Enviado com sucesso!" << endl;
@@ -148,20 +170,31 @@ bool ARQ::handle(){
 
 			//--------------------------------------------------------------------
 
-			this->currentstate = B;
-
 		}else if(this->received){
 			Framework::Type r;
 			char * from_serial = new char[FRAME_MAXSIZE];
 			if((r = this->framework.receive(from_serial)) != Framework::none){
 				if(test_data(r)){
 					this->tun.write(from_serial, this->framework.get_len());
+//					Frame * ping = this->tun.get_frame();
+//					cout << "Ping: " << ping->total_length() << endl;
+//					cout << "Ping: " << ping->seq << endl;
+//					delete ping;
 					this->currentstate = D;
+				}else if(test_ack(r)){
+					srand((unsigned)time(0)); //para gerar números aleatórios reais.
+					int maior = 30;
+					int menor = 20;
+					int aleatorio = rand()%(maior-menor+1) + menor;
+					this->enable = true;
+					this->backoff_value = aleatorio;
+					this->currentstate = C;
 				}else{
-					cout << "ERRO: Tipo de dado não coerente!" << endl;
+					cout << "ERRO: Tipo de dado não coerente: D!" << endl;
 					return true;
 				}
 			}
+			delete from_serial;
 		}else{
 			cout << "AVISO: Operação do estado D inválido" << endl;
 			return true;

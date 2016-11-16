@@ -42,37 +42,28 @@ static uint16_t fcstab[256] = {
 			0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
 
-bool CRC::check_crc(unsigned char * buffer, int len){
+bool CRC::check_crc(char * buffer, int len){
 
-	cout << "Frame para checagem: " << buffer << endl;
 
 	uint16_t crc = pppfcs16(buffer,len);
-
-	cout << hex << (crc) << endl;
-	cout << hex << (crc & 0x00ff) << endl;
-	cout << hex << ((crc >> 8) & 0x00ff) << endl;
 
 	return (crc == PPPGOODFSCS16);
 
 
 }
 
-void CRC::gen_crc(unsigned char * buffer, int len){
+void CRC::gen_crc(char * buffer, int len){
 
 	uint16_t crc = pppfcs16(buffer,len);
 
 	crc ^= 0xffff;
-
-	cout << hex << (crc) << endl;
-	cout << hex << (crc & 0x00ff) << endl;
-	cout << hex << ((crc >> 8) & 0x00ff) << endl;
 
 	buffer[len] = (crc & 0x00ff);      /* least significant byte first */
     buffer[len+1] = ((crc >> 8) & 0x00ff);
 
 }
 
-uint16_t CRC::pppfcs16(unsigned char * cp, int len){
+uint16_t CRC::pppfcs16(char * cp, int len){
 
 	uint16_t fcs = PPPINITFCS16;
 

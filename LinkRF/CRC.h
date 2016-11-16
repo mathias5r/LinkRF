@@ -23,9 +23,9 @@ class CRC {
 public:
 	CRC(){};
 	virtual ~CRC(){};
-	bool check_crc(unsigned char * buffer, int len);
-	void gen_crc(unsigned char * buffer, int len);
-	uint16_t pppfcs16(unsigned char * cp, int len);
+	bool check_crc(char * buffer, int len);
+	void gen_crc(char * buffer, int len);
+	uint16_t pppfcs16(char * cp, int len);
 };
 
 #endif /* CRC_H_ */
