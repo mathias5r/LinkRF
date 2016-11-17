@@ -31,7 +31,6 @@ int Framework::send(char * buffer, int len, int type, int seq){
 
 	if (len >= this->min_bytes && len <= this->max_bytes) {
 		frame = mount(buffer,len,type, seq);
-		cout << "Quadro: " << frame << endl;
 		int k;
 		if((k = transceiver.write(frame, this->len_send) > 0)){
 			len_send = 0;
@@ -139,7 +138,6 @@ Framework::Type Framework::receive(char * buffer){
 	this->len_receive = k-5;
 
 	Framework::Type r = get_type(this->buffer[0]);
-	cout << "BUFFER[0]: " << this->buffer[0] << endl;
 
 	memcpy(buffer, this->buffer+1, this->len_receive);
 
@@ -235,15 +233,19 @@ Framework::Type Framework::get_type(char control){
 	switch(control){
 		case('0'):
 			return Framework::data0;
+			cout << "INFO: Dado de sequência 0 reconhecido!" << endl;
 			break;
 		case('1'):
 			return Framework::data1;
+			cout << "INFO: Dado de sequência 1 reconhecido!" << endl;
 			break;
 		case('2'):
 			return Framework::ack0;
+			cout << "INFO: ACK de sequência 0 reconhecido!" << endl;
 			break;
 		case('3'):
 			return Framework::ack1;
+			cout << "INFO: ACK de sequência 1 reconhecido!" << endl;
 			break;
 		default:
 			cout << "Erro: Tipo de mensagem não identificada!: " << control << endl;

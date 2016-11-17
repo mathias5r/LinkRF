@@ -12,14 +12,36 @@ using namespace std;
 
 int main(){
 
-	cout << "------------------------- Aplicação LinkRF ------------------------------- " << endl;
-	//cout << "--------Configuração---------------- " << endl
-	//cout << " Digite a interface serial:
+	char  interface[256];
+	char  ip_local[256];
+	char  ip_destiny[256];
+	char  transceiver[256];
 
-	Tun iface("ptp0" , "192.168.1.1", "192.168.1.2");
+	cout << "------------------------- Protocolo de Comunicação ------------------------------- " << endl;
+	cout << "-- Configuração da Rede:---------------------------------------------------------- " << endl;
+	cout << "-- Digite o nome da interface: " << endl;
+	cin.getline(interface,256);
+	cout << "-- Digite o IP local: " << endl;
+	cin.getline(ip_local,256);
+	cout << "-- Digite o IP de destino: " << endl;
+	cin.getline(ip_destiny,256);
+	cout << "-- Digite o caminho do transceiver: " << endl;
+	cin.getline(transceiver,256);
+
+	cout << "-------------------------------- Configuração ------------------------------------ " << endl;
+	cout << " Interface: " << interface << endl;
+	cout << " IP local: " << ip_local << endl;
+	cout << " Ip de destino: " << ip_destiny << endl;
+	cout << " Transceiver: " << transceiver << endl;
+
+	cout << "---------------------------  Iniciando Comunicação ------------------------------- " << endl;
+	cout << "-- Realizar ping no Ip de destino! " << endl;
+	cout << "" << endl;
+	cout << "" << endl;
+
+	Tun iface(interface,ip_local,ip_destiny);
 	iface.start();
-	Serial t("/dev/ttyUSB0",B9600);
-	//Serial t("/dev/ttyUSB0",B9600);
+	Serial t(transceiver,B9600);
 	Framework f(t,1,FRAME_MAXSIZE);
 	ARQ arq(f, iface);
 	Dispacher d(arq,t.get_fd(),iface.get());

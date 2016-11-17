@@ -64,7 +64,8 @@ void Dispacher::handle(){
 			}
 		}else{
 
-			cout << "INFO: Nenhuma operação depois de 1 segundos!" << endl;
+			cout << "INFO: Nenhuma operação depois de 1 segundo!" << endl;
+
 			this->arq.set_timeout(true);
 			this->arq.handle();
 			timeout.tv_sec = 1;
@@ -74,8 +75,7 @@ void Dispacher::handle(){
 				this->backoff_control++;
 			}
 
-			cout << "Retransmissão em: " << this->backoff_control << endl;
-			cout << "Valor aleatório:  " << this->arq.get_backoff() << endl;
+			cout << "INFO: Retransmissão em: " << this->arq.get_backoff() << " segundos - " << this->backoff_control << endl;
 
 			if(this->backoff_control >= this->arq.get_backoff()){
 				this->backoff_control = 0;

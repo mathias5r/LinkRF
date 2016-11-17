@@ -201,7 +201,7 @@ bool ARQ::test_data(Framework::Type r){
 			cout << "INFO: ACK com sequência " << this->sequenceM << " Enviado com sucesso!" << endl;
 			return true;
 		}else{
-			cout << "Erro ao enviar ACK de sequência: " << this->sequenceM << endl;
+			cout << "ERRO: Erro ao enviar ACK de sequência: " << this->sequenceM << endl;
 			return false;
 		}
 	}else if(r == Framework::data1){
@@ -210,7 +210,7 @@ bool ARQ::test_data(Framework::Type r){
 			cout << "INFO: ACK com sequência " << this->sequenceM << "Enviado com sucesso!" << endl;
 			return true;
 		}else{
-			cout << "Erro ao enviar ACK de sequência: " << this->sequenceM << endl;
+			cout << "ERRO: Erro ao enviar ACK de sequência: " << this->sequenceM << endl;
 			return false;
 		}
 	}
