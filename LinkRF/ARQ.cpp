@@ -17,8 +17,8 @@ ARQ::ARQ(Framework & f, Tun & tun): framework(f), tun(tun) {
 	this->backoff = false;
 	this->timeout = false;
 	srand((unsigned)time(0)); //para gerar números aleatórios reais.
-	int maior = 30;
-	int menor = 20;
+	int maior = 5;
+	int menor = 1;
 	int aleatorio = rand()%(maior-menor+1) + menor;
 	this->backoff_value = aleatorio;
 	this->enable = false;
@@ -83,8 +83,8 @@ bool ARQ::handle(){
 					this->currentstate = B;
 				}else if(test_ack(r)){
 					srand((unsigned)time(0)); //para gerar números aleatórios reais.
-					int maior = 30;
-					int menor = 20;
+					int maior = 5;
+					int menor = 1;
 					int aleatorio = rand()%(maior-menor+1) + menor;
 					this->enable = true;
 					this->backoff_value = aleatorio;
@@ -97,8 +97,8 @@ bool ARQ::handle(){
 			delete from_serial;
 		}else if(this->timeout){
 			srand((unsigned)time(0)); //para gerar números aleatórios reais.
-			int maior = 30;
-			int menor = 20;
+			int maior = 5;
+			int menor = 1;
 			int aleatorio = rand()%(maior-menor+1) + menor;
 			this->enable = true;
 			this->backoff_value = aleatorio;
@@ -130,6 +130,13 @@ bool ARQ::handle(){
 				}
 			}
 			delete from_serial;
+		}else if(this->canSend){
+			char * from_app = new char[BUFSIZE];
+			Frame * frame;
+			frame = this->tun.get_frame();
+			frame->copy(from_app);
+			cout << "AVISO: Dado não pode ser processado - Backoff!";
+			return true;
 		}else{
 			cout << "AVISO: Operação do estado C inválido" << endl;
 			return true;
@@ -144,9 +151,6 @@ bool ARQ::handle(){
 		if(this->backoff){
 
 			cout << "INFO: Retransmissão" << endl;
-
-			//--------------------------------------------------------------------
-
 			char * from_app = new char[BUFSIZE];
 			this->current_frame.copy(from_app);
 			int frame_size = this->current_frame.total_length();
@@ -157,9 +161,6 @@ bool ARQ::handle(){
 				cout << "ERRO: Erro ao enviar dado com sequência " << this->sequenceN << endl;
 				return true;
 			}
-
-			//--------------------------------------------------------------------
-
 		}else if(this->received){
 			Framework::Type r;
 			char * from_serial = new char[FRAME_MAXSIZE];
@@ -169,8 +170,8 @@ bool ARQ::handle(){
 					this->currentstate = D;
 				}else if(test_ack(r)){
 					srand((unsigned)time(0)); //para gerar números aleatórios reais.
-					int maior = 30;
-					int menor = 20;
+					int maior = 5;
+					int menor = 1;
 					int aleatorio = rand()%(maior-menor+1) + menor;
 					this->enable = true;
 					this->backoff_value = aleatorio;
@@ -181,6 +182,13 @@ bool ARQ::handle(){
 				}
 			}
 			delete from_serial;
+		}else if(this->canSend){
+			char * from_app = new char[BUFSIZE];
+			Frame * frame;
+			frame = this->tun.get_frame();
+			frame->copy(from_app);
+			cout << "AVISO: Dado não pode ser processado - Backoff!";
+			return true;
 		}else{
 			cout << "AVISO: Operação do estado D inválido" << endl;
 			return true;
