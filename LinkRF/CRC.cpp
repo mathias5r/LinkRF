@@ -2,11 +2,17 @@
  * CRC.cpp
  *
  *  Created on: 13 de out de 2016
- *      Author: mathias
+ *    
  */
 
 #include "CRC.h"
 
+
+/*
+ *
+ * lookup table pra calcular o FCS (Frame Check Sequence)
+ *
+ */
 static uint16_t fcstab[256] = {
 			0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
 			0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -42,6 +48,11 @@ static uint16_t fcstab[256] = {
 			0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
 
+/*
+ * Verificação do FCS do quadro recebido 
+ * pela serial através do transceiver.
+ *
+ */
 bool CRC::check_crc(char * buffer, int len){
 
 
@@ -52,6 +63,11 @@ bool CRC::check_crc(char * buffer, int len){
 
 }
 
+/*
+ * Gerar um novo FCS (Frame Check Sequence)
+ * para o quadro que será transmitido.
+ *
+ */
 void CRC::gen_crc(char * buffer, int len){
 
 	uint16_t crc = pppfcs16(buffer,len);
@@ -63,6 +79,11 @@ void CRC::gen_crc(char * buffer, int len){
 
 }
 
+/*
+ * Calcular um novo FCS através o atual FCS
+ * e o novo dado (pacote) que será transmitido.
+ *
+ */
 uint16_t CRC::pppfcs16(char * cp, int len){
 
 	uint16_t fcs = PPPINITFCS16;

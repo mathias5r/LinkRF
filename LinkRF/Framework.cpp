@@ -10,6 +10,14 @@
 #include "Framework.h"
 #include <bitset>
 
+/*
+ * Construtor da classe Framework.
+ * 	=> Inicializou as variáveis para construção do quadro que será transmitido
+ *         através da interface serial;
+ *      => O objeto CRC para adicionar o FCS (Frame Check Sequence) no pacote
+ *         que será transmitido;
+ *      
+ */ 
 Framework::Framework(Serial & tr, int bytes_min, int bytes_max): transceiver(tr){
 
 	this->min_bytes = bytes_min;
@@ -23,6 +31,22 @@ Framework::Framework(Serial & tr, int bytes_min, int bytes_max): transceiver(tr)
 	this->len_receive = 0;
 }
 
+/*
+ * Esse método é utilizado na recepção do quadro.
+ * Basicamente, verifica se o quadro está dentro do tamanho mínimo e
+ * máximo de bytes e verifica se é possível enviar o quadro ao transceiver.
+ * 
+ * ** Verifica se o quadro está dentro do tamanho mín e max estabelecido. 
+ *	=> Caso sim, tenta transmitir o quadro através do transceiver.
+ *      => Caso não, é transmitido o erro de tamanho inválido de quadro
+ *	   e o quadro é descartado.
+ *
+ * ** Verifica se é possível enviar o quadro através do transceiver. Ou seja,
+ *    se é possível a escrita no descritor do transceiver.
+ * 	=> Caso sim, o quadro é transmitido com sucesso.
+ *	=> Caso não, o quadro é descartado.
+ *
+ */
 int Framework::send(char * buffer, int len, int type, int seq){
 
 	cout << "INFO: Início do enquadramento..." << endl;
@@ -48,6 +72,39 @@ int Framework::send(char * buffer, int len, int type, int seq){
 	return 1;
 }
 
+/*
+ * Esse método adiciona as flags de início e fim de quadro. 
+ * Entretanto, durante a inserção das flags no quadro, também
+ * é necessário verificar se as flags também não estão contidas
+ * no payload do quadro. Caso estejam, é realizado um tratamento
+ * no payload do quadro.
+ *
+ * ** Adiciona Flag de início do quadro (7E)
+ * 
+ * ** Verificar se é um quadro de ACK ou de dados.
+ *	=> Através do retorno do byte control é possível
+ *         saber se é um ACK (0|1) ou data (0|1)
+ *
+ * ** Iteração para buscar as flags no payload do quadro.
+ * 	=> Byte do payload = 7E 
+ *		*** Na mesma posição é adicionado 7D e na próxima 5E.
+ *		    No momento da recepção (desmontrar o quadro), 
+ *                  assim que for verificado o 7D, o 5E voltará 
+ *                  a ser 7E.
+ *
+ *	=> Byte do payload = 7D
+ *		*** Na mesma posição é adicionado 7D e na próxima 5D.
+ *		    No momento da recepção (desmontrar o quadro), 
+ *                  assim que for verificado o 7D, o 5D voltará 
+ *                  a ser 7D.
+ *
+ *	=> Default
+ *		*** O byte é só adicionado ao quadro.
+ *
+ *
+ * ** Adiciona Flag de fim de quadro (7E)
+ *
+ */
 char * Framework::mount(char * buffer, int len, int type, int seq){
 
 	this->len_send = 0;
@@ -87,6 +144,31 @@ char * Framework::mount(char * buffer, int len, int type, int seq){
 	return frame;
 }
 
+/*
+ * 
+ * Esse método é utilizado na recepção do quadro.
+ * Basicamente, recebe o quadro byte a byte até a 
+ * delimitação de fim de quadro e envia o quadro
+ * recebido à FSM (Finite State Machine) para que
+ * seja enviando somente payload do quadro a app.
+ *
+ * ** Laço de iteração para recepção do quadro.
+ * 	=> Execedeu o tamanho: quadro descartado.
+ *   
+ *      => Erro ao ler byte do transceiver: quadro descartado.
+ *
+ *	=> Default: continua recebendo os bytes do quadro 
+ * 		    até a flag "end_flag" ser habilitada.
+ *
+ * ** Verifica o CRC do quadro.
+ *	=> CRC alterado: quadro descartado.
+ *
+ *	=> CRC inalterado: envia à FSM de recepção.
+ *
+ * ** Laço de iteração para o tratamento do payload
+ *    pela FSM de recepção. 
+ *
+ */
 Framework::Type Framework::receive(char * buffer){
 
 	cout << "INFO: Início da remoção do enquadramento..." << endl;
@@ -146,6 +228,44 @@ Framework::Type Framework::receive(char * buffer){
 	return r;
 }
 
+/*
+ * Implementação da FSM (Finite State Machine) para recepção do quadro. 
+ *
+ * Caso waiting:
+ *
+ *	** Verifica se recebeu a flag de início de quadro (7E)	
+ *		=> Segue ao estado de recepção (reception).
+ *      ** Continua no estado waiting (idle) na espera da 
+ * 	   flag de início de quadro.
+ *
+ * Caso reception:
+ *
+ *	** Caso o número de bytes recebidos seja maior que o	
+ *         tamanho máximo do quadro.
+ *         	=> Retorna ao estado waiting à espera de um novo
+ *		   quadro.
+ *	** Flag 7E encontrada (flag de fim de quadro).	
+ *		=> Retorna ao estado waiting à espera de um novo
+ *		   quadro.
+ *	** Flag 7D encontrada (flag de escape)
+ *		=> Segue para o estado escape para o tratamento 
+ *		   dessa exceção.
+ *	** Default
+ *		=> Continua recebendo os bytes do payload.
+ *
+ * Caso escape:
+ *
+ *	** Flag 5E.
+ *		=> Transforma o 5E em 7E e remove 7D.
+ *	** Flag 5D.
+ *		=> Transforma o 5D em 7D e remove o 7D.
+ *	** Flag 7E (flag fim de quadro).
+ *		=> Retorna ao esta do waiting à espera de
+ *		   um novo quadro.
+ *	** Default
+ *		=> Continua recebendo os bytes do payload.
+ *
+ */
 bool Framework::handle(char byte){
 
 	switch(this->currentState){
@@ -204,6 +324,15 @@ bool Framework::handle(char byte){
 	return false;
 }
 
+/*
+ *
+ * Esse método retorna um byte denominado control, para
+ * que na recepção através desse byte control seja possível
+ * verificar se é um ACK ou data e qual é sua sequência (0|1).
+ * É utilizado no método "mount" para adicionar qual tipo de
+ * quadro e qual sequência será transmitido.
+ * 
+ */
 char Framework::header(int type, int seq){
 
 	char control;
@@ -228,6 +357,14 @@ char Framework::header(int type, int seq){
 
 }
 
+/*
+ *
+ * Esse método retorna qual é o tipo quadro, ACK(0|1) ou data(0|1), 
+ * através do byte control passado como parâmetro.
+ * É utilizado na recepção do quadro para verificar qual tipo de
+ * quadro recebido. 
+ *
+ */
 Framework::Type Framework::get_type(char control){
 
 	switch(control){
