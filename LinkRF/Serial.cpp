@@ -26,6 +26,12 @@ Serial::Serial(int fd, int rate){
 Serial::~Serial() {
 }
 
+/* 
+ * Escrita dos quadros na interface serial,
+ * tendo origem a interface TUN. Ou seja,
+ * tranmissão dos quadros.
+ *
+ */
 int Serial::write(char * buffer, int len){
 
 	int pos = 0;
@@ -39,11 +45,21 @@ int Serial::write(char * buffer, int len){
 	return pos;
 }
 
+/*
+ * Método de leitura dos quadros
+ * na interface serial.
+ *
+ */
 int Serial::read(char * buffer, int len){
 
 	return read(buffer, len, false);
 }
 
+/*
+ * Método de leitura bloqueante dos 
+ * quadros na interface serial.
+ *
+ */
 int Serial::read(char * buffer, int len, bool block){
 	if (block) {
 		fd_set r;
@@ -62,10 +78,19 @@ char Serial::read_byte() {
 	return c;
 }
 
+/*
+ * Retorna o valor do descritor da serial.
+ *
+ */
 int Serial::get_fd(){
 	return this->tty_fd;
 }
 
+/*
+ * Configuração padrão da serial. Esse método será chamado
+ * no construtor para inicializar a interface serial.
+ *
+ */
 void Serial::config(int fd, int rate){
 
 	struct termios tio;
